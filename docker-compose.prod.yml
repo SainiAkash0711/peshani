@@ -1,0 +1,168 @@
+# Production-oriented Compose file. Does NOT replace docker-compose.yml (the
+# existing dev-only postgres+redis file, left untouched) - this is a
+# separate, additive file for production/production-like deployment.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#
+# Mandatory services: postgres, api, web, admin, reverse-proxy.
+# Optional service: redis (see the Phase 14 report's Redis Decision section -
+# this deployment targets a SINGLE api instance, so nothing in the
+# application actually requires Redis; it is opt-in via the `with-redis`
+# profile, never started by a plain `up`).
+#
+# Only the reverse-proxy publishes ports to the host (80/443). postgres and
+# redis are reachable ONLY on the internal Docker network - never publish
+# their ports here, unlike the dev compose file, which does so deliberately
+# for local tooling convenience.
+#
+# ENVIRONMENT ISOLATION (Phase 14-R1): this file's top-level `name:` below,
+# every persistent volume, the network, and every container name are all
+# explicitly "-prod-" namespaced with Docker-level `name:` overrides, NOT
+# left to Compose's default `<project>_<key>` naming. This file previously
+# shared BOTH the same implicit Compose *project* name as docker-compose.yml
+# (both defaulted to the working directory's name, "peshani") AND the same
+# volume key with no explicit Docker-level name - meaning a plain
+# `docker compose -f docker-compose.prod.yml up` (no `-p`/
+# `COMPOSE_PROJECT_NAME`) resolved to the IDENTICAL underlying postgres
+# volume as the dev stack, and once caused Compose to recreate the real
+# dev postgres container in place. Adding only container_name/volume
+# `name:` overrides (a first, INSUFFICIENT attempt) still left both files
+# sharing the same default project name, and Compose tracks "is this
+# service already running" by the (project, service-name) pair - so
+# `docker compose -f docker-compose.prod.yml up` still recreated whatever
+# container held the "postgres" service slot for project "peshani",
+# regardless of that container's own explicit name - confirmed via a real,
+# repeated test. The top-level `name: peshani-prod` below is the complete
+# fix: it makes this file's Compose project permanently and unmistakably
+# distinct from docker-compose.yml's, regardless of working directory name
+# or whether an operator remembers a `-p`/`COMPOSE_PROJECT_NAME` override.
+# See docs/PRODUCTION_RUNBOOK.md's "Environment Isolation" section.
+name: peshani-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: peshani-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - peshani-prod-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+
+  redis:
+    image: redis:7-alpine
+    container_name: peshani-prod-redis
+    restart: unless-stopped
+    volumes:
+      - peshani-prod-redis-data:/data
+    networks: [internal]
+    profiles: ["with-redis"]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: peshani-prod-api
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Persists uploaded media across container restarts/redeploys - see
+      # the Phase 14 report's Media Storage section. This is a SINGLE-
+      # instance-safe strategy only: a second api replica would need a
+      # shared network filesystem or real object storage instead, since a
+      # named Docker volume is local to the host it lives on.
+      - peshani-prod-api-storage:/app/apps/api/storage
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+    container_name: peshani-prod-web
+    restart: unless-stopped
+    depends_on: [api]
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+    container_name: peshani-prod-admin
+    restart: unless-stopped
+    depends_on: [api]
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128m
+
+  reverse-proxy:
+    image: nginx:1.27-alpine
+    container_name: peshani-prod-reverse-proxy
+    restart: unless-stopped
+    depends_on: [api, web, admin]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/certs:/etc/nginx/certs:ro
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128m
+
+networks:
+  internal:
+    name: peshani-prod-network
+    driver: bridge
+
+volumes:
+  peshani-prod-postgres-data:
+    name: peshani-prod-postgres-data
+  peshani-prod-redis-data:
+    name: peshani-prod-redis-data
+  peshani-prod-api-storage:
+    name: peshani-prod-api-storage

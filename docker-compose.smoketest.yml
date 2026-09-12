@@ -1,0 +1,70 @@
+# Compose OVERRIDE for smoke-testing the production stack without any risk
+# of touching real production's (or development's) containers/volumes.
+#
+# WHY THIS FILE EXISTS (Phase 14-R1): docker-compose.prod.yml deliberately
+# hard-codes its persistent volume/network/container names via Docker-level
+# `name:` overrides (see that file's own "ENVIRONMENT ISOLATION" comment) so
+# that a real production deployment is safe from Phase 14's original
+# accidental-collision incident REGARDLESS of the Compose project name an
+# operator uses. That same hard-coding, however, means `docker compose -f
+# docker-compose.prod.yml -p <anything>` ALWAYS resolves to the exact same
+# `peshani-prod-*` volume/network/container names, no matter what project
+# name follows `-p` - so a naive "smoke test" that reuses
+# docker-compose.prod.yml directly, even under a different project name,
+# would still collide with a REAL production deployment's volumes/
+# containers if ever run against the same Docker daemon/host.
+#
+# This override file replaces every persistent name with a distinct
+# `peshani-smoketest-*` identity, so smoke testing is safe by construction,
+# not by operator discipline. Use it layered on top of the production file:
+#
+#   docker compose \
+#     -f docker-compose.prod.yml -f docker-compose.smoketest.yml \
+#     --env-file .env.production \
+#     up -d --build
+#
+# A `-p`/`COMPOSE_PROJECT_NAME` is not required for safety with this
+# override in place (the explicit names below make collision impossible
+# either way), but using one (e.g. `-p peshani-smoketest`) is still good
+# practice for clean `docker compose ls`/`docker ps` grouping.
+#
+# Never point NEXT_PUBLIC_API_BASE_URL/RAZORPAY_*/JWT_ACCESS_SECRET etc. in
+# a smoke-test .env.production at real production values - see
+# docs/PRODUCTION_RUNBOOK.md's "Environment Isolation" section.
+
+services:
+  postgres:
+    container_name: peshani-smoketest-postgres
+    volumes:
+      - peshani-smoketest-postgres-data:/var/lib/postgresql/data
+
+  redis:
+    container_name: peshani-smoketest-redis
+    volumes:
+      - peshani-smoketest-redis-data:/data
+
+  api:
+    container_name: peshani-smoketest-api
+    volumes:
+      - peshani-smoketest-api-storage:/app/apps/api/storage
+
+  web:
+    container_name: peshani-smoketest-web
+
+  admin:
+    container_name: peshani-smoketest-admin
+
+  reverse-proxy:
+    container_name: peshani-smoketest-reverse-proxy
+
+networks:
+  internal:
+    name: peshani-smoketest-network
+
+volumes:
+  peshani-smoketest-postgres-data:
+    name: peshani-smoketest-postgres-data
+  peshani-smoketest-redis-data:
+    name: peshani-smoketest-redis-data
+  peshani-smoketest-api-storage:
+    name: peshani-smoketest-api-storage

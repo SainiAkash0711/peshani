@@ -1,0 +1,39 @@
+# Never let secrets, local state, or build artifacts leak into a Docker
+# build context / image - each Dockerfile COPYs only what it explicitly
+# needs, but this backstops that in case a future COPY is ever too broad.
+
+# Environment / secrets
+.env
+.env.*
+!.env.*.example
+
+# Dependencies (installed fresh inside the image)
+**/node_modules
+
+# Build output (rebuilt fresh inside the image)
+apps/api/dist
+apps/web/.next
+apps/admin/dist
+*.tsbuildinfo
+
+# Local uploaded media (never baked into an image - see the Media Storage
+# section of the Phase 14 report for the persistent-volume strategy)
+apps/api/storage
+
+# Test / coverage artifacts
+coverage
+apps/api/test/**/*.log
+
+# Version control / editor / OS noise
+.git
+.gitignore
+.vscode
+.idea
+*.log
+.DS_Store
+Thumbs.db
+
+# Documentation (not needed inside a runtime image)
+docs
+*.md
+!apps/**/README.md

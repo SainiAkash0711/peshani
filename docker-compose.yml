@@ -1,0 +1,66 @@
+version: "3.9"
+
+# Local development only. See docker-compose.prod.yml for production.
+#
+# ENVIRONMENT ISOLATION (Phase 14-R1): this file's top-level `name:` below,
+# every persistent volume, the network, and both container names are all
+# explicitly "-dev-" namespaced. This is deliberate, not decoration - see
+# the "Environment Isolation" section in docs/PRODUCTION_RUNBOOK.md for the
+# full story, but in short: this file and docker-compose.prod.yml used to
+# share the SAME implicit Compose *project* name (both defaulted to the
+# working directory's name, "peshani", since neither file set an explicit
+# top-level `name:`) AND the same volume key with no Docker-level `name:`.
+# Compose tracks "is this service already running" by the (project,
+# service-name) pair - NOT by container_name or volume name alone - so
+# even after adding explicit container_name/volume `name:` overrides in an
+# earlier pass, running `docker compose -f docker-compose.prod.yml up`
+# still caused Compose to treat this file's `postgres` service as the SAME
+# logical service as the production file's `postgres` service (both still
+# named "postgres" under the still-shared default project "peshani"), and
+# recreate whichever container currently held that slot - confirmed via a
+# real, repeated test. The top-level `name: peshani-dev` below is the
+# actual, complete fix: it makes this file's Compose project permanently
+# and unmistakably distinct from docker-compose.prod.yml's, regardless of
+# the working directory name or whether an operator remembers to pass
+# `-p`/`COMPOSE_PROJECT_NAME`.
+name: peshani-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: peshani-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-peshani}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-peshani_dev_password}
+      POSTGRES_DB: ${DB_NAME:-peshani}
+    ports:
+      - "5432:5432"
+    volumes:
+      - peshani-dev-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-peshani}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [dev]
+
+  redis:
+    image: redis:7-alpine
+    container_name: peshani-dev-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - peshani-dev-redis-data:/data
+    networks: [dev]
+
+networks:
+  dev:
+    name: peshani-dev-network
+
+volumes:
+  peshani-dev-postgres-data:
+    name: peshani-dev-postgres-data
+  peshani-dev-redis-data:
+    name: peshani-dev-redis-data

@@ -1,0 +1,7 @@
+export type CartItemStatus =
+  | 'VALID'
+  | 'PRODUCT_UNAVAILABLE'
+  | 'VARIANT_UNAVAILABLE'
+  | 'OUT_OF_STOCK'
+  | 'INSUFFICIENT_STOCK'
+  | 'PRICE_CHANGED';

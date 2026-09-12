@@ -1,0 +1,1938 @@
+generator client {
+  provider = "prisma-client-js"
+  // "native" covers local dev (Windows/macOS/glibc-Linux, whatever this
+  // machine actually is). "linux-musl-openssl-3.0.x" is added for Phase 14 -
+  // the production Docker image (node:20-alpine, musl libc) ships OpenSSL
+  // 3.x, not the 1.1 that Prisma's plain "linux-musl" target expects -
+  // confirmed by actually running the built image, which failed at startup
+  // with "Error loading shared library libssl.so.1.1: No such file or
+  // directory" until this explicit target was added and the client
+  // regenerated inside the Alpine build stage.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Store & configuration
+// White-label readiness: every store-scoped table below carries a storeId so
+// multi-store support is additive later, without a schema rewrite.
+// ---------------------------------------------------------------------------
+
+model Store {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  settings  StoreSetting[]
+  users     User[]
+  auditLogs AuditLog[]
+
+  categories              Category[]
+  brands                  Brand[]
+  attributes              Attribute[]
+  tags                    Tag[]
+  products                Product[]
+  productVariants         ProductVariant[]
+  productImages           ProductImage[]
+  homepageSlides          HomepageSlide[]
+  variantImages           VariantImage[]
+  priceHistories          PriceHistory[]
+  warehouses              Warehouse[]
+  inventoryItems          InventoryItem[]
+  inventoryTransactions   InventoryTransaction[]
+  stockReservations       StockReservation[]
+  carts                   Cart[]
+  orders                  Order[]
+  payments                Payment[]
+  shippingMethods         ShippingMethod[]
+  orderStatusHistory      OrderStatusHistory[]
+  promotions              Promotion[]
+  promotionProducts       PromotionProduct[]
+  promotionCategories     PromotionCategory[]
+  promotionBrands         PromotionBrand[]
+  coupons                 Coupon[]
+  couponRedemptions       CouponRedemption[]
+  productReviews          ProductReview[]
+  reviewHelpfulVotes      ReviewHelpfulVote[]
+  reviewReports           ReviewReport[]
+  wishlists               Wishlist[]
+  notifications           Notification[]
+  notificationTemplates   NotificationTemplate[]
+  notificationPreferences NotificationPreference[]
+  outboxEvents            OutboxEvent[]
+  returnRequests          ReturnRequest[]
+  returnItems             ReturnItem[]
+  returnEvidence          ReturnEvidence[]
+  refunds                 Refund[]
+
+  @@map("stores")
+}
+
+model StoreSetting {
+  id        String   @id @default(uuid())
+  storeId   String
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, key])
+  @@map("store_settings")
+}
+
+// ---------------------------------------------------------------------------
+// Identity, roles & permissions
+// ---------------------------------------------------------------------------
+
+enum UserType {
+  CUSTOMER
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+model User {
+  id               String    @id @default(uuid())
+  storeId          String
+  email            String
+  passwordHash     String
+  firstName        String?
+  lastName         String?
+  phone            String?
+  dateOfBirth      DateTime? @db.Date
+  gender           Gender?
+  address          Json?
+  type             UserType  @default(CUSTOMER)
+  isActive         Boolean   @default(true)
+  emailVerifiedAt  DateTime?
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  store                   Store                    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  roles                   UserRole[]
+  refreshTokens           RefreshToken[]
+  auditLogs               AuditLog[]
+  priceChanges            PriceHistory[]
+  inventoryTransactions   InventoryTransaction[]
+  carts                   Cart[]
+  orders                  Order[]
+  orderStatusChanges      OrderStatusHistory[]
+  couponRedemptions       CouponRedemption[]
+  reviewsAuthored         ProductReview[]          @relation("ReviewAuthor")
+  reviewsModerated        ProductReview[]          @relation("ReviewModerator")
+  reviewHelpfulVotes      ReviewHelpfulVote[]
+  reviewReports           ReviewReport[]           @relation("ReviewReporter")
+  reviewReportsResolved   ReviewReport[]           @relation("ReviewReportResolver")
+  wishlists               Wishlist[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
+  returnRequests          ReturnRequest[]
+  uploadedReturnEvidence  ReturnEvidence[]
+
+  @@unique([storeId, email])
+  @@map("users")
+}
+
+model Role {
+  id        String   @id @default(uuid())
+  storeId   String
+  name      String
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@unique([storeId, name])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ---------------------------------------------------------------------------
+// Auth session state
+// ---------------------------------------------------------------------------
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique
+  revokedAt  DateTime?
+  replacedBy String?
+  userAgent  String?
+  ipAddress  String?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// Phase 13 - password-reset tokens are otherwise stateless signed JWTs (no
+// DB row backs them), which means nothing stops the SAME valid token being
+// redeemed twice within its 1-hour expiry. This table makes redemption
+// single-use: resetPassword() checks-and-inserts the token's `jti` inside
+// the same transaction as the actual password change, so a second
+// redemption attempt (even a millisecond later) fails atomically. Only the
+// jti is stored - never the token itself or the new password.
+model UsedPasswordResetToken {
+  jti    String   @id
+  userId String
+  usedAt DateTime @default(now())
+
+  @@map("used_password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Audit logging
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  storeId    String
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog: categories, brands, attributes, tags
+// ---------------------------------------------------------------------------
+
+model Category {
+  id             String    @id @default(uuid())
+  storeId        String
+  parentId       String?
+  name           String
+  slug           String
+  description    String?
+  image          String?
+  bannerImage    String?
+  seoTitle       String?
+  seoDescription String?
+  sortOrder      Int       @default(0)
+  isActive       Boolean   @default(true)
+  isFeatured     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  store      Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  parent     Category?           @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children   Category[]          @relation("CategoryHierarchy")
+  products   ProductCategory[]
+  promotions PromotionCategory[]
+
+  @@unique([storeId, slug])
+  @@index([storeId, parentId])
+  @@index([storeId, isActive])
+  @@map("categories")
+}
+
+model Brand {
+  id             String    @id @default(uuid())
+  storeId        String
+  name           String
+  slug           String
+  description    String?
+  logo           String?
+  website        String?
+  seoTitle       String?
+  seoDescription String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  store      Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  products   Product[]
+  promotions PromotionBrand[]
+
+  @@unique([storeId, slug])
+  @@index([storeId, isActive])
+  @@map("brands")
+}
+
+enum AttributeType {
+  SELECT
+  COLOR
+  TEXT
+  NUMBER
+}
+
+model Attribute {
+  id        String        @id @default(uuid())
+  storeId   String
+  name      String
+  slug      String
+  type      AttributeType @default(SELECT)
+  sortOrder Int           @default(0)
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  deletedAt DateTime?
+
+  store             Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  values            AttributeValue[]
+  productAttributes ProductAttribute[]
+
+  @@unique([storeId, slug])
+  @@index([storeId, isActive])
+  @@map("attributes")
+}
+
+model AttributeValue {
+  id          String    @id @default(uuid())
+  attributeId String
+  value       String
+  slug        String
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  attribute     Attribute                      @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  variantValues ProductVariantAttributeValue[]
+
+  @@unique([attributeId, slug])
+  @@map("attribute_values")
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  storeId   String
+  name      String
+  slug      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store    Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  products ProductTag[]
+
+  @@unique([storeId, slug])
+  @@map("tags")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog: products & variants
+// ---------------------------------------------------------------------------
+
+enum ProductType {
+  SIMPLE
+  VARIABLE
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+  OUT_OF_STOCK
+}
+
+enum ProductVariantStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+model Product {
+  id               String        @id @default(uuid())
+  storeId          String
+  brandId          String?
+  name             String
+  slug             String
+  sku              String?
+  description      String?
+  shortDescription String?
+  status           ProductStatus @default(DRAFT)
+  productType      ProductType   @default(SIMPLE)
+  basePrice        Decimal       @db.Decimal(12, 2)
+  compareAtPrice   Decimal?      @db.Decimal(12, 2)
+  costPrice        Decimal?      @db.Decimal(12, 2)
+  taxClass         String?
+  // Unit: kilograms (kg).
+  weight           Decimal?      @db.Decimal(10, 3)
+  metadata         Json?
+  seoTitle         String?
+  seoDescription   String?
+  isFeatured       Boolean       @default(false)
+  isBestseller     Boolean       @default(false)
+  isNewArrival     Boolean       @default(false)
+  publishedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
+
+  store          Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  brand          Brand?             @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  categories     ProductCategory[]
+  tags           ProductTag[]
+  variants       ProductVariant[]
+  images         ProductImage[]
+  attributes     ProductAttribute[]
+  priceHistories PriceHistory[]
+  inventoryItems InventoryItem[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  promotions     PromotionProduct[]
+  reviews        ProductReview[]
+  wishlistItems  WishlistItem[]
+
+  @@unique([storeId, slug])
+  @@unique([storeId, sku])
+  @@index([storeId, status])
+  @@index([storeId, brandId])
+  @@index([storeId, productType])
+  // Phase 12 - the home page's getFeatured/getBestsellers/getNewArrivals each
+  // run `WHERE storeId=X AND <flag>=true ORDER BY createdAt DESC LIMIT n`.
+  // Replaces the old 2-column (storeId, isFeatured) index (which still left
+  // createdAt sorting unindexed) with a 3-column version, and adds the two
+  // siblings that had no index at all - confirmed via EXPLAIN ANALYZE against
+  // this dev database's ~14k-product catalog that isBestseller/isNewArrival
+  // were doing a full sequential scan (rows removed by filter: ~14.7k).
+  @@index([storeId, isFeatured, createdAt])
+  @@index([storeId, isBestseller, createdAt])
+  @@index([storeId, isNewArrival, createdAt])
+  @@map("products")
+}
+
+model ProductCategory {
+  productId  String
+  categoryId String
+  isPrimary  Boolean @default(false)
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
+  @@map("product_categories")
+}
+
+model ProductTag {
+  productId String
+  tagId     String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+  @@index([tagId])
+  @@map("product_tags")
+}
+
+model ProductAttribute {
+  id          String   @id @default(uuid())
+  productId   String
+  attributeId String
+  createdAt   DateTime @default(now())
+
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, attributeId])
+  @@index([attributeId])
+  @@map("product_attributes")
+}
+
+model ProductVariant {
+  id             String               @id @default(uuid())
+  storeId        String
+  productId      String
+  // SKU is normalized to uppercase before persisting (see ProductVariantsService),
+  // so the plain unique index below is sufficient for a case-insensitive policy
+  // without needing a citext extension.
+  sku            String
+  barcode        String?
+  price          Decimal              @db.Decimal(12, 2)
+  compareAtPrice Decimal?             @db.Decimal(12, 2)
+  costPrice      Decimal?             @db.Decimal(12, 2)
+  // Unit: kilograms (kg), matching the Product.weight convention.
+  weight         Decimal?             @db.Decimal(10, 3)
+  status         ProductVariantStatus @default(ACTIVE)
+  image          String?
+  // Deterministic key derived from this variant's sorted attribute value ids
+  // (e.g. "<blackValueId>-<mValueId>") - the only practical way to make
+  // Postgres enforce "no duplicate Black/M twice" at the database level,
+  // since a plain many-to-many join table can't express set-uniqueness.
+  combinationKey String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  deletedAt      DateTime?
+
+  store           Store                          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product         Product                        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attributeValues ProductVariantAttributeValue[]
+  images          VariantImage[]
+  inventoryItems  InventoryItem[]
+  priceHistories  PriceHistory[]
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  reviews         ProductReview[]
+  wishlistItems   WishlistItem[]
+
+  @@unique([storeId, sku])
+  @@unique([storeId, barcode])
+  @@unique([productId, combinationKey])
+  @@index([productId])
+  @@index([storeId, status])
+  @@map("product_variants")
+}
+
+model ProductVariantAttributeValue {
+  variantId        String
+  attributeValueId String
+
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  attributeValue AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Restrict)
+
+  @@id([variantId, attributeValueId])
+  @@map("product_variant_attribute_values")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog: media
+// ---------------------------------------------------------------------------
+
+model ProductImage {
+  id               String   @id @default(uuid())
+  storeId          String
+  productId        String
+  url              String
+  storageKey       String?
+  originalFilename String?
+  mimeType         String?
+  fileSize         Int?
+  width            Int?
+  height           Int?
+  contentHash      String?
+  altText          String?
+  caption          String?
+  sortOrder        Int      @default(0)
+  isPrimary        Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+  @@index([productId, isPrimary])
+  @@map("product_images")
+}
+
+// Customer storefront homepage hero slider/banner - admin-managed content,
+// not tied to any product. Only `isActive` slides are ever returned to the
+// storefront, ordered by sortOrder - mirrors ProductImage's own
+// upload/reorder/activate conventions.
+model HomepageSlide {
+  id               String   @id @default(uuid())
+  storeId          String
+  imageUrl         String
+  storageKey       String?
+  originalFilename String?
+  mimeType         String?
+  fileSize         Int?
+  width            Int?
+  height           Int?
+  contentHash      String?
+  title            String?
+  subtitle         String?
+  linkUrl          String?
+  sortOrder        Int      @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, isActive, sortOrder])
+  @@map("homepage_slides")
+}
+
+model VariantImage {
+  id               String   @id @default(uuid())
+  storeId          String
+  variantId        String
+  url              String
+  storageKey       String?
+  originalFilename String?
+  mimeType         String?
+  fileSize         Int?
+  width            Int?
+  height           Int?
+  contentHash      String?
+  altText          String?
+  caption          String?
+  sortOrder        Int      @default(0)
+  isPrimary        Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  store   Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId, sortOrder])
+  @@index([variantId, isPrimary])
+  @@map("variant_images")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog: pricing history
+// ---------------------------------------------------------------------------
+
+model PriceHistory {
+  id        String   @id @default(uuid())
+  storeId   String
+  productId String
+  variantId String?
+  oldPrice  Decimal  @db.Decimal(12, 2)
+  newPrice  Decimal  @db.Decimal(12, 2)
+  changedBy String?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  store         Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant       ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  changedByUser User?           @relation(fields: [changedBy], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@map("price_histories")
+}
+
+// ---------------------------------------------------------------------------
+// Inventory
+// ---------------------------------------------------------------------------
+
+enum InventoryTransactionType {
+  INITIAL_STOCK
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+  RESERVATION
+  RELEASE
+  SALE
+  RETURN
+  DAMAGE
+  TRANSFER
+}
+
+enum StockReservationStatus {
+  ACTIVE
+  RELEASED
+  COMMITTED
+  EXPIRED
+}
+
+model Warehouse {
+  id           String    @id @default(uuid())
+  storeId      String
+  name         String
+  code         String
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  state        String?
+  country      String?
+  postalCode   String?
+  isDefault    Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  store          Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  inventoryItems InventoryItem[]
+
+  @@unique([storeId, code])
+  @@map("warehouses")
+}
+
+model InventoryItem {
+  id                String   @id @default(uuid())
+  storeId           String
+  productId         String
+  variantId         String?
+  warehouseId       String
+  // Physical stock actually present in the warehouse. Stock adjustments and
+  // transfers modify this directly; it is the base the other two are derived from.
+  onHandQuantity    Int      @default(0)
+  // Always maintained as onHandQuantity - reservedQuantity, updated in the same
+  // transaction as whichever side changes - never written independently. See
+  // Phase 2F report for why this is a service-maintained cache rather than a
+  // Postgres GENERATED column (Prisma has no first-class support for those).
+  availableQuantity Int      @default(0)
+  // PHASE 2F CORRECTION: counts stock held by ANY non-released reservation -
+  // both ACTIVE (temporary hold) and COMMITTED (firm allocation) - not just
+  // ACTIVE ones. Chosen so `available = onHand - reserved` stays a literal
+  // two-term formula. See InventoryService's class-level doc comment for the
+  // full reservation-lifecycle semantics and why this is the correct model.
+  reservedQuantity  Int      @default(0)
+  // Reporting-only SUBSET of reservedQuantity: how much of it is firm
+  // (COMMITTED) rather than still just a temporary hold (ACTIVE). Does NOT
+  // subtract from availableQuantity separately - that would double-count a
+  // COMMITTED reservation's quantity, since it is already inside
+  // reservedQuantity. committedQuantity <= reservedQuantity always.
+  committedQuantity Int      @default(0)
+  lowStockThreshold Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  store        Store                  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product      Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant      ProductVariant?        @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  warehouse    Warehouse              @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  transactions InventoryTransaction[]
+  reservations StockReservation[]
+
+  // NOTE: Postgres treats each NULL as distinct in a unique index, so this
+  // constraint does not by itself stop two simple-product (variantId = null)
+  // rows for the same product+warehouse. The service layer (Phase 2F) closes
+  // that gap with a Postgres advisory lock (pg_advisory_xact_lock) around the
+  // check-then-create, since the DB constraint alone can't. Kept here because
+  // it still fully protects variants, and doubles as the lookup index.
+  @@unique([warehouseId, productId, variantId])
+  @@index([storeId, warehouseId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("inventory_items")
+}
+
+model InventoryTransaction {
+  id               String                   @id @default(uuid())
+  storeId          String
+  inventoryItemId  String
+  type             InventoryTransactionType
+  quantity         Int
+  previousQuantity Int
+  newQuantity      Int
+  reason           String?
+  reference        String?
+  performedById    String?
+  createdAt        DateTime                 @default(now())
+
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  performedBy   User?         @relation(fields: [performedById], references: [id], onDelete: SetNull)
+
+  @@index([inventoryItemId, createdAt])
+  @@index([storeId, createdAt])
+  @@map("inventory_transactions")
+}
+
+model StockReservation {
+  id              String                 @id @default(uuid())
+  storeId         String
+  inventoryItemId String
+  quantity        Int
+  status          StockReservationStatus @default(ACTIVE)
+  reference       String?
+  // Phase 5: tags a checkout-created reservation with the order/order line
+  // it belongs to, so CheckoutService can find "every reservation for this
+  // order" to release (payment failed/expired) or commit (payment
+  // succeeded) them all together, without parsing the free-text `reference`
+  // string. NULL for every reservation created outside checkout (e.g. the
+  // admin `/inventory/reservations` route) - both linkage fields are purely
+  // additive and never required.
+  orderId         String?
+  orderItemId     String?
+  expiresAt       DateTime
+  releasedAt      DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  order         Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  orderItem     OrderItem?    @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+
+  @@index([inventoryItemId, status])
+  @@index([expiresAt])
+  @@index([orderId])
+  @@map("stock_reservations")
+}
+
+// ---------------------------------------------------------------------------
+// Cart (Phase 4)
+// ---------------------------------------------------------------------------
+
+enum CartStatus {
+  ACTIVE
+  MERGED
+  ABANDONED
+  EXPIRED
+  // Phase 5: the cart's contents became a confirmed Order (payment
+  // captured). Distinct from MERGED (a guest cart folded into a customer's
+  // cart on login) - conflating the two would make it impossible to tell
+  // "this cart is gone because it was merged" from "this cart is gone
+  // because it was purchased" when looking at cart history.
+  CONVERTED
+}
+
+model Cart {
+  id             String     @id @default(uuid())
+  storeId        String
+  // Set only for an authenticated customer's cart; NULL for a guest cart.
+  userId         String?
+  // SHA-256 hash of the guest cart token - the raw token is never persisted
+  // (same pattern as RefreshToken.tokenHash). NULL for an authenticated cart.
+  guestTokenHash String?
+  status         CartStatus @default(ACTIVE)
+  currency       String
+  expiresAt      DateTime
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  store Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  // Postgres treats every NULL as distinct in a unique index, so this alone
+  // cannot stop two guest carts from sharing a token (guestTokenHash is only
+  // ever non-null for guest carts) or enforce "one active cart per user"
+  // (userId is only ever non-null for authenticated carts, and this index
+  // doesn't cover userId at all). The guest-token half is fully covered by
+  // this constraint since a real collision would mean two different random
+  // 256-bit tokens hashing identically - practically impossible, so this is
+  // enforced here for defense in depth. The "one active cart per user" half
+  // is NOT expressible as a plain unique index (a user legitimately has many
+  // non-ACTIVE carts over time) - the service layer closes that gap with a
+  // Postgres advisory lock around the check-then-create, exactly like
+  // InventoryService.initialize() does for the identical NULL-uniqueness
+  // problem on InventoryItem (see Phase 2F report).
+  @@unique([storeId, guestTokenHash])
+  @@index([storeId, userId, status])
+  @@index([expiresAt])
+  @@map("carts")
+}
+
+model CartItem {
+  id                String   @id @default(uuid())
+  cartId            String
+  productId         String
+  variantId         String?
+  // Always variantId when the line is for a VARIABLE product's variant,
+  // else productId (SIMPLE product, variantId NULL). A non-null substitute
+  // for variantId so the database can enforce "no duplicate line for this
+  // exact product/variant in this cart" even for SIMPLE products, where
+  // Postgres's NULL-distinctness would otherwise let
+  // @@unique([cartId, productId, variantId]) silently allow duplicates.
+  itemKey           String
+  quantity          Int
+  // Snapshot of the authoritative unit price at last add/refresh - re-verified
+  // against the live product/variant price on every read (see CartService),
+  // never trusted from the client. Never itself the source of truth.
+  unitPriceSnapshot Decimal  @db.Decimal(12, 2)
+  currency          String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, itemKey])
+  @@index([cartId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+// ---------------------------------------------------------------------------
+// Orders & Payments (Phase 5)
+// ---------------------------------------------------------------------------
+
+// Phase 6: extended with the fulfillment lifecycle the Phase 5 doc comment
+// above deferred. PENDING_PAYMENT and CONFIRMED remain exclusively
+// PaymentService's to set (real payment verification only - see the Phase 5
+// report). PROCESSING/PACKED/SHIPPED/DELIVERED are the new admin-driven
+// fulfillment states, transitioned only through OrderStatusService's
+// enforced transition matrix - see that service's own doc comment.
+enum OrderStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  PROCESSING
+  PACKED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// Who/what initiated an OrderStatusHistory entry - distinct from PaymentStatus
+// entirely (Phase 6 §9: payment and fulfillment are separate concepts).
+enum OrderStatusChangeSource {
+  CUSTOMER
+  ADMIN
+  SYSTEM
+}
+
+enum PaymentProvider {
+  RAZORPAY
+}
+
+// Mirrors Razorpay's own payment lifecycle rather than inventing a generic
+// one: CREATED (Razorpay order created, no payment attempted yet) -> PENDING
+// (customer handed to Razorpay's checkout) -> AUTHORIZED (Razorpay accepted
+// the payment method) -> CAPTURED (funds actually captured - terminal
+// success) or FAILED (terminal failure) or CANCELLED (customer abandoned
+// Razorpay checkout - terminal). Only ever changed by PaymentService, never
+// by a client-supplied status value - see CheckoutModule's final report.
+enum PaymentStatus {
+  CREATED
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  CANCELLED
+}
+
+model Order {
+  id                         String      @id @default(uuid())
+  storeId                    String
+  userId                     String
+  // Customer-facing reference (e.g. PES-20260905-A1B2C3D4) - never a raw
+  // UUID. Generated with a collision-retry loop (see OrderService), not a
+  // bare timestamp, so two orders placed in the same millisecond can't collide.
+  orderNumber                String      @unique
+  status                     OrderStatus @default(PENDING_PAYMENT)
+  currency                   String
+  subtotal                   Decimal     @db.Decimal(12, 2)
+  taxAmount                  Decimal     @default(0) @db.Decimal(12, 2)
+  shippingAmount             Decimal     @default(0) @db.Decimal(12, 2)
+  discountAmount             Decimal     @default(0) @db.Decimal(12, 2)
+  // = subtotal + taxAmount + shippingAmount - discountAmount. This phase
+  // never populates tax/shipping/discount (no tax engine, no shipping
+  // rates, no coupons yet - see the Phase 5 scope boundary), so today
+  // totalAmount always equals subtotal exactly; the columns exist so a
+  // future phase can populate them without a schema change.
+  totalAmount                Decimal     @db.Decimal(12, 2)
+  customerEmail              String
+  customerPhone              String?
+  // Snapshots, not live references to a profile-address table (none exists
+  // yet) - an order's shipping details must never silently change if the
+  // customer later edits their profile.
+  billingAddress             Json
+  shippingAddress            Json
+  // Optional client-supplied Idempotency-Key (see CheckoutService) - a
+  // retried checkout request carrying the same key returns the SAME order
+  // instead of creating a second one. NULL for the common case (no key
+  // supplied); Postgres allows multiple NULLs, so only actual key reuse is
+  // constrained. payloadHash lets a key reused with a genuinely different
+  // request body be rejected rather than silently returning the wrong order.
+  idempotencyKey             String?
+  idempotencyKeyPayloadHash  String?
+  // Phase 6: which ShippingMethod the customer selected, purely for
+  // reference/reporting - never re-read to determine price or eligibility
+  // after order creation (shippingAmount above is the frozen snapshot, same
+  // immutability principle as OrderItem's own snapshots). Nullable + SetNull
+  // so a later-deleted ShippingMethod never breaks a historical order; the
+  // name is snapshotted separately so the order stays fully readable even
+  // then (see OrderItem.productNameSnapshot for the identical pattern).
+  shippingMethodId           String?
+  shippingMethodNameSnapshot String?
+  // Phase 6: set exactly once, by fulfillOrder(), the moment this order's
+  // reservations are physically consumed (onHand actually reduced). The
+  // atomic conditional guard `fulfilledAt: null` in that operation is what
+  // makes fulfillment idempotent/exactly-once under concurrency - see
+  // InventoryService.fulfillOrder's doc comment.
+  fulfilledAt                DateTime?
+  // Phase 7: which Coupon was applied, purely for reference/reporting -
+  // discountAmount above (already existed since Phase 5, unused until now)
+  // is the frozen authoritative snapshot; this is never re-read to
+  // recalculate eligibility or amount after order creation. Nullable +
+  // SetNull so a later-deleted Coupon/Promotion never breaks a historical
+  // order - couponCodeSnapshot/promotionNameSnapshot keep the order fully
+  // readable even then (same pattern as OrderItem's product snapshots and
+  // Order.shippingMethodNameSnapshot).
+  couponId                   String?
+  couponCodeSnapshot         String?
+  promotionNameSnapshot      String?
+  placedAt                   DateTime    @default(now())
+  createdAt                  DateTime    @default(now())
+  updatedAt                  DateTime    @updatedAt
+
+  store            Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shippingMethod   ShippingMethod?      @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
+  coupon           Coupon?              @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  items            OrderItem[]
+  payments         Payment[]
+  reservations     StockReservation[]
+  statusHistory    OrderStatusHistory[]
+  couponRedemption CouponRedemption?
+  reviews          ProductReview[]
+  returnRequests   ReturnRequest[]
+  refunds          Refund[]
+
+  @@unique([storeId, userId, idempotencyKey])
+  @@index([storeId, userId])
+  @@index([storeId, status])
+  // Phase 11 - analytics date-range trend queries (sales/orders by day,
+  // qualifying-order aggregates) filter on storeId + placedAt constantly;
+  // reviewed the existing index set first (§22) - neither existing Order
+  // index covers a date-range scan, so this is a justified addition, not a
+  // blind copy of every candidate the phase suggested.
+  @@index([storeId, placedAt])
+  @@index([shippingMethodId])
+  @@index([couponId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  String   @id @default(uuid())
+  orderId             String
+  // Nullable and never cascade-deleted with the product/variant (onDelete:
+  // SetNull) - an order must stay fully readable from its own snapshot
+  // fields below even after the product is deleted (see Phase 5 report §57).
+  productId           String?
+  variantId           String?
+  productNameSnapshot String
+  variantNameSnapshot String?
+  skuSnapshot         String
+  quantity            Int
+  unitPrice           Decimal  @db.Decimal(12, 2)
+  lineTotal           Decimal  @db.Decimal(12, 2)
+  currency            String
+  imageUrlSnapshot    String?
+  createdAt           DateTime @default(now())
+
+  order        Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant      ProductVariant?    @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  reservations StockReservation[]
+  review       ProductReview?
+  returnItems  ReturnItem[]
+
+  @@index([orderId])
+  // Phase 11 - product-level sales analytics GROUP BY productId across
+  // every qualifying order item; this table had no productId index at all.
+  @@index([productId])
+  @@map("order_items")
+}
+
+// A Payment row IS a payment attempt - a customer retrying after a failure
+// creates a NEW Payment row (new Razorpay order, new attempt) against the
+// SAME Order, never a new Order (see Phase 5 report §8/§29).
+model Payment {
+  id                String          @id @default(uuid())
+  storeId           String
+  orderId           String
+  provider          PaymentProvider @default(RAZORPAY)
+  // Nullable as of the Phase 5 correction pass: the local Payment attempt
+  // row is now created and durably committed BEFORE the Razorpay order-
+  // creation HTTP call is made (not after), specifically so a lost network
+  // response leaves a recoverable local record rather than nothing at all.
+  // NULL means "this attempt exists locally but the remote provider order
+  // is not yet confirmed" - reconciled via PaymentProvider.fetchOrderByReceipt
+  // (receipt = this row's own id) rather than blindly retried. See
+  // PaymentService.createOrRecoverPaymentSession and the correction report.
+  providerOrderId   String?
+  providerPaymentId String?
+  // Authoritative amount THIS attempt was created for - always copied from
+  // Order.totalAmount at the moment of creation, never from client input.
+  amount            Decimal         @db.Decimal(12, 2)
+  currency          String
+  status            PaymentStatus   @default(CREATED)
+  failureReason     String?
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  store   Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refunds Refund[]
+
+  // Prevents the same Razorpay order/payment id from ever being attached to
+  // two different Payment rows - Postgres allows multiple NULLs in a unique
+  // index, so many CREATED attempts with no providerPaymentId yet coexist fine.
+  @@unique([provider, providerOrderId])
+  @@unique([provider, providerPaymentId])
+  @@index([orderId])
+  @@index([storeId, status])
+  // Phase 11 - payment analytics date-range queries (attempts/captured
+  // amount within a period) filter storeId + createdAt.
+  @@index([storeId, createdAt])
+  @@map("payments")
+}
+
+// Webhook idempotency ledger - provider + their own event id is globally
+// unique (Razorpay guarantees this), so a webhook delivered twice (Razorpay
+// itself retries on a non-2xx response, and can duplicate-deliver even on
+// success) is detected here before any state change is attempted twice.
+model PaymentWebhookEvent {
+  id          String          @id @default(uuid())
+  provider    PaymentProvider @default(RAZORPAY)
+  eventId     String
+  eventType   String
+  payloadHash String
+  receivedAt  DateTime        @default(now())
+  processedAt DateTime?
+
+  @@unique([provider, eventId])
+  @@map("payment_webhook_events")
+}
+
+// ---------------------------------------------------------------------------
+// Shipping & Fulfillment (Phase 6)
+// ---------------------------------------------------------------------------
+
+// No external courier integration yet (see Phase 6 scope boundary) - this is
+// purely a merchant-configured rate/label (e.g. "Standard", "Express") whose
+// price is looked up server-side at checkout, never trusted from the client.
+model ShippingMethod {
+  id                    String    @id @default(uuid())
+  storeId               String
+  name                  String
+  code                  String
+  description           String?
+  price                 Decimal   @db.Decimal(12, 2)
+  estimatedDeliveryDays Int?
+  isActive              Boolean   @default(true)
+  sortOrder             Int       @default(0)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  deletedAt             DateTime?
+
+  store  Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@unique([storeId, code])
+  @@index([storeId, isActive])
+  @@map("shipping_methods")
+}
+
+// Append-only order fulfillment audit trail - distinct from the generic
+// AuditLog (which every module already gets automatically via
+// AuditLogInterceptor plus each service's own semantic calls): this table
+// specifically models the ORDER'S OWN state machine history in a
+// queryable, strongly-typed shape (previousStatus/newStatus as real
+// OrderStatus values) for the customer-facing timeline and admin detail view,
+// rather than being parsed back out of AuditLog's free-form metadata JSON.
+// Never updated or deleted once written - see OrderStatusService.
+model OrderStatusHistory {
+  id              String                  @id @default(uuid())
+  storeId         String
+  orderId         String
+  previousStatus  OrderStatus
+  newStatus       OrderStatus
+  // NULL for a SYSTEM-sourced transition (e.g. PaymentService's own
+  // PENDING_PAYMENT -> CONFIRMED / CANCELLED, which predates and is
+  // untouched by this Phase 6 table - see OrderStatusService's doc comment
+  // on why those two transitions are never written here).
+  changedByUserId String?
+  source          OrderStatusChangeSource
+  reason          String?
+  metadata        Json?
+  createdAt       DateTime                @default(now())
+
+  store         Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  order         Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedByUser User? @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@index([storeId, createdAt])
+  @@map("order_status_history")
+}
+
+// ---------------------------------------------------------------------------
+// Promotions, Coupons & Discount Engine (Phase 7)
+// ---------------------------------------------------------------------------
+
+enum PromotionDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+// Owns the DISCOUNT configuration (type/value/cap/minimum-order) and
+// targeting/exclusion rules. Deliberately does NOT own dates or usage limits
+// (see Coupon below) - one promotion could in principle back more than one
+// coupon code, each with its own independent validity window and usage
+// caps, and the Phase 7 prompt explicitly requires picking ONE authoritative
+// location for those rather than duplicating them on both models.
+model Promotion {
+  id                    String                @id @default(uuid())
+  storeId               String
+  name                  String
+  description           String?
+  discountType          PromotionDiscountType
+  // PERCENTAGE: 0 < value <= 100. FIXED_AMOUNT: value > 0 (a currency amount).
+  value                 Decimal               @db.Decimal(12, 2)
+  // Only meaningful for PERCENTAGE - caps the computed discount regardless
+  // of how large eligibleAmount x value% would otherwise be.
+  maximumDiscountAmount Decimal?              @db.Decimal(12, 2)
+  // Evaluated against the merchandise subtotal BEFORE discount (never
+  // shipping/tax) - see DiscountEngineService.
+  minimumOrderAmount    Decimal?              @db.Decimal(12, 2)
+  isActive              Boolean               @default(true)
+  sortOrder             Int                   @default(0)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  deletedAt             DateTime?
+
+  store       Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  coupons     Coupon[]
+  products    PromotionProduct[]
+  categories  PromotionCategory[]
+  brands      PromotionBrand[]
+  redemptions CouponRedemption[]
+
+  @@index([storeId, isActive])
+  @@map("promotions")
+}
+
+// Store-wide by default (§13: no target rows at all -> every product is
+// eligible). Any target row narrows eligibility to matching
+// products/categories/brands; any row with isExcluded=true REMOVES a
+// product from eligibility regardless of how it otherwise matched -
+// exclusion always overrides inclusion (§14). @@unique on
+// (promotionId, productId) means a single product can never simultaneously
+// be both an included and an excluded target for the same promotion - one
+// row, one flag, no contradictory state possible by construction.
+model PromotionProduct {
+  id          String  @id @default(uuid())
+  storeId     String
+  promotionId String
+  productId   String
+  isExcluded  Boolean @default(false)
+
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, productId])
+  @@index([productId])
+  @@map("promotion_products")
+}
+
+model PromotionCategory {
+  id          String  @id @default(uuid())
+  storeId     String
+  promotionId String
+  categoryId  String
+  isExcluded  Boolean @default(false)
+
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, categoryId])
+  @@index([categoryId])
+  @@map("promotion_categories")
+}
+
+model PromotionBrand {
+  id          String  @id @default(uuid())
+  storeId     String
+  promotionId String
+  brandId     String
+  isExcluded  Boolean @default(false)
+
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  brand     Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, brandId])
+  @@index([brandId])
+  @@map("promotion_brands")
+}
+
+// Owns the CODE plus dates/usage-limits (the authoritative location - see
+// Promotion's own doc comment above). `code` is the original as entered
+// (display); `normalizedCode` (trimmed + uppercased) is what every lookup,
+// uniqueness check, and redemption count actually uses (§9) - a customer
+// typing "save10", "SAVE10", or "Save10" always resolves to the same row.
+model Coupon {
+  id                    String    @id @default(uuid())
+  storeId               String
+  promotionId           String
+  code                  String
+  normalizedCode        String
+  isActive              Boolean   @default(true)
+  startsAt              DateTime?
+  endsAt                DateTime?
+  usageLimit            Int?
+  perCustomerUsageLimit Int?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  deletedAt             DateTime?
+
+  store       Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  promotion   Promotion          @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  redemptions CouponRedemption[]
+  orders      Order[]
+
+  // Tenant-scoped uniqueness on the NORMALIZED code (§10) - Store A and
+  // Store B may both have "SAVE10"; within one store, "SAVE10"/"save10"
+  // can never become two conflicting active codes because they normalize
+  // to the same value and collide on this constraint.
+  @@unique([storeId, normalizedCode])
+  @@index([promotionId])
+  @@map("coupons")
+}
+
+enum CouponRedemptionStatus {
+  RESERVED
+  CONSUMED
+  RELEASED
+}
+
+// The concurrency-safe, idempotent record of one Order's coupon usage.
+// `orderId` is UNIQUE - deliberately: this is what enforces "one coupon per
+// Order" (§56) and makes redemption creation idempotent for a retried
+// checkout request (a duplicate attempt for the same Order can only ever
+// find the existing row, never create a second one) at the database level,
+// not just in application logic. See CouponRedemptionService for the
+// RESERVED -> CONSUMED / RESERVED -> RELEASED state machine.
+model CouponRedemption {
+  id             String                 @id @default(uuid())
+  storeId        String
+  couponId       String
+  promotionId    String
+  userId         String
+  orderId        String                 @unique
+  status         CouponRedemptionStatus @default(RESERVED)
+  // Frozen at reservation time - the actual amount deducted from this
+  // Order, independent of any later change to the Promotion's own config.
+  discountAmount Decimal                @db.Decimal(12, 2)
+  createdAt      DateTime               @default(now())
+  consumedAt     DateTime?
+  releasedAt     DateTime?
+
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  coupon    Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Global usage-limit and per-customer usage-limit checks both count rows
+  // WHERE couponId = ? AND status IN ('RESERVED','CONSUMED') - RESERVED
+  // counts too (a reservation genuinely holds a usage slot until it is
+  // released), so both indexes lead with couponId and status.
+  @@index([couponId, status])
+  @@index([couponId, userId, status])
+  @@index([storeId])
+  @@map("coupon_redemptions")
+}
+
+// ---------------------------------------------------------------------------
+// Reviews, Ratings & Wishlist (Phase 8)
+// ---------------------------------------------------------------------------
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  HIDDEN
+}
+
+// One review per purchased OrderItem (§5) - orderItemId is @unique, which is
+// what enforces that rule at the database level, concurrency-safe by
+// construction (a duplicate concurrent create hits the unique constraint,
+// never a race). productId/variantId are nullable + SetNull (mirroring
+// OrderItem's own established pattern) so an archived/soft-deleted product
+// never breaks a historical review - Product/ProductVariant rows in this
+// codebase are only ever soft-deleted (deletedAt), never hard-deleted, so
+// the review's `product` relation stays fully populated even for an
+// archived product; SetNull is purely defensive for the (currently
+// unreachable) hard-delete case. No name/price snapshot is needed here the
+// way OrderItem needs one - a review is about the CURRENT product's
+// identity, not a frozen financial record of what it cost at purchase time.
+model ProductReview {
+  id                String       @id @default(uuid())
+  storeId           String
+  productId         String?
+  variantId         String?
+  userId            String
+  orderId           String
+  orderItemId       String       @unique
+  rating            Int
+  title             String?
+  body              String
+  status            ReviewStatus @default(PENDING)
+  // Server-derived only (§6) - true only when orderItemId's Order actually
+  // reached DELIVERED (this store's existing Phase 6 fulfillment lifecycle's
+  // strictest "customer actually received it" state) at the moment of
+  // review creation. Frozen at creation, exactly like verifiedPurchase
+  // badges on any real storefront - never re-derived from a later order
+  // status change.
+  verifiedPurchase  Boolean      @default(false)
+  moderatedByUserId String?
+  moderatedAt       DateTime?
+  moderationNote    String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  deletedAt         DateTime?
+
+  store        Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product      Product?            @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant      ProductVariant?     @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  user         User                @relation("ReviewAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  order        Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem    OrderItem           @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  moderatedBy  User?               @relation("ReviewModerator", fields: [moderatedByUserId], references: [id], onDelete: SetNull)
+  helpfulVotes ReviewHelpfulVote[]
+  reports      ReviewReport[]
+
+  @@index([storeId, productId, status])
+  @@index([storeId, status])
+  @@index([userId])
+  @@map("product_reviews")
+}
+
+// One vote per customer per review (§12) - reviewId+userId is @unique,
+// concurrency-safe by construction (a duplicate concurrent vote hits the
+// unique constraint rather than racing a read-then-write).
+model ReviewHelpfulVote {
+  id        String   @id @default(uuid())
+  storeId   String
+  reviewId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  store  Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  review ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
+  @@map("review_helpful_votes")
+}
+
+// One report per customer per review, permanently (a deliberately simpler
+// rule than "one ACTIVE report" - see ReviewsService's own doc comment) -
+// reviewId+userId is @unique, concurrency-safe by construction.
+model ReviewReport {
+  id               String    @id @default(uuid())
+  storeId          String
+  reviewId         String
+  userId           String
+  reason           String
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  resolutionNote   String?
+  createdAt        DateTime  @default(now())
+
+  store      Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  review     ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user       User          @relation("ReviewReporter", fields: [userId], references: [id], onDelete: Cascade)
+  resolvedBy User?         @relation("ReviewReportResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
+  @@map("review_reports")
+}
+
+// One wishlist per customer per store (§15).
+model Wishlist {
+  id        String   @id @default(uuid())
+  storeId   String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items WishlistItem[]
+
+  @@unique([storeId, userId])
+  @@map("wishlists")
+}
+
+// Mirrors CartItem's own itemKey pattern exactly (Phase 4) - the same
+// NULL-distinctness problem applies here: two SIMPLE-product wishlist
+// entries (variantId always NULL) would not collide on a plain
+// @@unique([wishlistId, productId, variantId]), so itemKey (variantId when
+// present, else productId) is what the uniqueness constraint actually
+// targets, distinguishing a product-only entry from a product+variant entry.
+model WishlistItem {
+  id         String   @id @default(uuid())
+  wishlistId String
+  productId  String
+  variantId  String?
+  itemKey    String
+  createdAt  DateTime @default(now())
+
+  wishlist Wishlist        @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  product  Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant  ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([wishlistId, itemKey])
+  @@index([wishlistId])
+  @@index([productId])
+  @@map("wishlist_items")
+}
+
+// ---------------------------------------------------------------------------
+// Notifications & Transactional Communication (Phase 9)
+//
+// Architecture: Business Event -> OutboxEvent (written in the SAME db
+// transaction as the business state change) -> OutboxWorker (polling) ->
+// NotificationService -> Notification row(s) (IN_APP created+SENT
+// immediately; EMAIL left PENDING) -> EmailDeliveryWorker (polling) ->
+// EmailProvider. This codebase has no queue library and no application code
+// actually using the Redis container already in docker-compose.yml (the
+// audit for this phase confirmed this - see the Phase 9 report) - rather
+// than introduce a new external runtime dependency (ioredis/BullMQ) whose
+// operational behavior would need its own separate hardening, the "queue"
+// is this Postgres-backed outbox, processed with the same atomic
+// conditional-claim idiom already used everywhere else in this codebase
+// (see OrderStatusService, InventoryService, CouponRedemptionService).
+// Nothing about this abstraction boundary prevents a future phase from
+// having the worker publish drained events onto Redis for multi-instance
+// fanout, or adding WhatsApp/SMS/Push as additional NotificationChannel
+// values with their own channel provider - no redesign required.
+// ---------------------------------------------------------------------------
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+// Delivery state ONLY - deliberately never conflated with read state
+// (Notification.readAt is a separate, independent field, per this phase's
+// own instruction not to mix delivery state with read state incorrectly).
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+enum NotificationType {
+  ORDER_CONFIRMED
+  ORDER_CANCELLED
+  ORDER_PACKED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  REVIEW_APPROVED
+  REVIEW_REJECTED
+  PROMOTION_AVAILABLE
+  COUPON_AVAILABLE
+  RETURN_REQUESTED
+  RETURN_APPROVED
+  RETURN_REJECTED
+  RETURN_RECEIVED
+  REFUND_INITIATED
+  REFUND_SUCCEEDED
+  REFUND_FAILED
+}
+
+enum NotificationPreferenceKey {
+  EMAIL_ORDER_UPDATES
+  EMAIL_PAYMENT_UPDATES
+  EMAIL_SHIPPING_UPDATES
+  EMAIL_REVIEW_UPDATES
+  EMAIL_PROMOTION_UPDATES
+  IN_APP_ORDER_UPDATES
+  IN_APP_PAYMENT_UPDATES
+  IN_APP_SHIPPING_UPDATES
+  IN_APP_REVIEW_UPDATES
+  IN_APP_PROMOTION_UPDATES
+}
+
+enum OutboxEventStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+// One row per (business event, recipient, channel) - idempotencyKey is
+// globally unique and always of the deterministic shape
+// "<eventType>:<aggregateId>:<channel>" (e.g. "ORDER_CONFIRMED:<orderId>:
+// EMAIL"), so a duplicate business event (webhook retry, worker replay,
+// process restart) can only ever hit this constraint rather than create a
+// second logical notification - see NotificationService.
+model Notification {
+  id             String              @id @default(uuid())
+  storeId        String
+  userId         String
+  type           NotificationType
+  channel        NotificationChannel
+  title          String
+  message        String
+  data           Json?
+  status         NotificationStatus  @default(PENDING)
+  idempotencyKey String              @unique
+  // Read state - independent of delivery `status` above. Only ever
+  // meaningful for IN_APP notifications (an EMAIL notification has no
+  // in-app "read" concept); left null for EMAIL rows.
+  readAt         DateTime?
+  attempts       Int                 @default(0)
+  // Retry backoff schedule for EMAIL delivery - the EmailDeliveryWorker only
+  // claims a PENDING row once nextAttemptAt <= now(). Irrelevant for IN_APP
+  // (created already SENT, never retried).
+  nextAttemptAt  DateTime            @default(now())
+  lastError      String?
+  sentAt         DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, userId, createdAt])
+  @@index([storeId, userId, readAt])
+  @@index([status, channel, nextAttemptAt])
+  @@map("notifications")
+}
+
+// Tenant-aware, reusable per-(store, notification type, channel) content.
+// `key` is deliberately the strongly-typed NotificationType enum (§7 - no
+// arbitrary strings where a controlled enum is appropriate) rather than a
+// free-form string. A store need not define every (type, channel) pair -
+// NotificationTemplateService falls back to a hardcoded built-in default so
+// delivery never breaks merely because an admin hasn't customized a template.
+model NotificationTemplate {
+  id        String              @id @default(uuid())
+  storeId   String
+  key       NotificationType
+  channel   NotificationChannel
+  subject   String?
+  title     String?
+  body      String
+  isActive  Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  deletedAt DateTime?
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, key, channel])
+  @@map("notification_templates")
+}
+
+// Sparse: a missing row for a given key means "default enabled" (see
+// NotificationPreferenceService.isEnabled) - a row only ever exists once a
+// customer has actually changed that key away from the default. Marketing
+// keys (*_PROMOTION_UPDATES) are the only ones this table is ever consulted
+// for delivery-gating purposes for; the transactional keys still exist here
+// so a customer can genuinely see/toggle them, but certain critical
+// transactional types (see NotificationService.ALWAYS_SEND_TYPES) are never
+// suppressed regardless of what this table says, so that a notification
+// preference can never accidentally suppress legally/operationally
+// necessary transactional communication.
+model NotificationPreference {
+  id        String                    @id @default(uuid())
+  storeId   String
+  userId    String
+  key       NotificationPreferenceKey
+  enabled   Boolean                   @default(true)
+  createdAt DateTime                  @default(now())
+  updatedAt DateTime                  @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, userId, key])
+  @@map("notification_preferences")
+}
+
+// The transactional outbox (§30/§31). Written in the SAME $transaction as
+// the business state change it describes (see OrderStatusService.transition/
+// fulfill, PaymentService.applySuccessfulPayment/markFailed/
+// finalizeReservationsAndConfirmOrder, ReviewsService.moderate) so a process
+// crash immediately after that transaction commits can never lose the event -
+// OutboxWorker will find it PENDING on the next poll regardless. idempotencyKey
+// is globally unique and deterministic ("<eventType>:<aggregateId>", no
+// channel suffix here - fan-out to per-channel Notification rows happens
+// downstream in NotificationService, each with its own channel-suffixed key),
+// so a duplicate emission attempt (e.g. a retried webhook re-entering the
+// same business-transition code path) is a safe, silent no-op at the
+// database level, never a second logical event.
+model OutboxEvent {
+  id             String            @id @default(uuid())
+  storeId        String
+  eventType      String
+  aggregateType  String
+  aggregateId    String
+  idempotencyKey String            @unique
+  payload        Json
+  status         OutboxEventStatus @default(PENDING)
+  attempts       Int               @default(0)
+  availableAt    DateTime          @default(now())
+  processedAt    DateTime?
+  lastError      String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([status, availableAt])
+  @@map("outbox_events")
+}
+
+// ---------------------------------------------------------------------------
+// Returns, Refunds & Post-Purchase Order Issue Management (Phase 10)
+//
+// Two independent lifecycles by design (§27): ReturnStatus tracks the
+// physical/logistical journey of the returned goods; RefundStatus tracks the
+// separate financial journey of the money. A ReturnRequest can sit at
+// RECEIVED while its Refund sits at PROCESSING - neither ever forces the
+// other's value. Refund reuses PaymentProvider (RAZORPAY) rather than a new
+// enum (§18 - deliberately not reusing PaymentStatus, but the *provider*
+// enum is genuinely the same concept and already exists).
+// ---------------------------------------------------------------------------
+
+enum ReturnStatus {
+  REQUESTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+  IN_TRANSIT
+  RECEIVED
+  REFUND_PENDING
+  REFUND_INITIATED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  COMPLETED
+}
+
+enum ReturnReason {
+  DAMAGED
+  DEFECTIVE
+  WRONG_ITEM
+  WRONG_SIZE
+  NOT_AS_DESCRIBED
+  CHANGED_MIND
+  OTHER
+}
+
+enum ReturnItemCondition {
+  NEW
+  OPENED
+  USED
+  DAMAGED
+  DEFECTIVE
+}
+
+// §14 - a returned item never automatically becomes sellable inventory.
+// RESTOCK is the only disposition that ever increases available stock (via
+// InventoryService.restockFromReturn, using the existing InventoryTransaction
+// type RETURN - already present in the enum since Phase 2F, unused until now).
+enum InventoryDisposition {
+  RESTOCK
+  DAMAGED
+  UNSELLABLE
+}
+
+// §18 - deliberately separate from PaymentStatus. UNKNOWN is distinct from
+// FAILED (§24): a provider timeout/lost-response leaves the refund UNKNOWN
+// until reconciliation resolves it one way or the other - it is NEVER
+// automatically treated as failed (that could let an operator retry into a
+// genuine duplicate refund).
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  UNKNOWN
+  CANCELLED
+}
+
+// One request may bundle several OrderItems/quantities (full or partial
+// return). Eligibility (§10/§11) is always computed server-side from
+// OrderStatusHistory's own DELIVERED transition timestamp - no separate
+// "eligibleUntil" is stored here, so there is only ever one authoritative
+// source for the return window, never a second one that could drift from it.
+model ReturnRequest {
+  id                String       @id @default(uuid())
+  storeId           String
+  orderId           String
+  userId            String
+  status            ReturnStatus @default(REQUESTED)
+  reason            ReturnReason
+  customerComment   String?
+  adminComment      String?
+  requestedAt       DateTime     @default(now())
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  cancelledAt       DateTime?
+  inTransitAt       DateTime?
+  receivedAt        DateTime?
+  inspectedAt       DateTime?
+  refundInitiatedAt DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  store    Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  order    Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items    ReturnItem[]
+  evidence ReturnEvidence[]
+  refunds  Refund[]
+
+  @@index([storeId, status])
+  @@index([storeId, userId])
+  @@index([orderId])
+  // Phase 11 - return analytics date-range queries filter storeId + requestedAt.
+  @@index([storeId, requestedAt])
+  @@map("return_requests")
+}
+
+// §7/§8 - one row per OrderItem included in a return. `quantity` is the
+// units requested THIS time - never confused with the OrderItem's own
+// purchased quantity. `refundAmount` is ALWAYS server-calculated
+// (RefundCalculationService) at request-creation time - the DTO accepting
+// this request does not even declare a refundAmount field, so a client
+// value could never be trusted even by accident (§7's own explicit warning).
+model ReturnItem {
+  id              String                @id @default(uuid())
+  storeId         String
+  returnRequestId String
+  orderItemId     String
+  quantity        Int
+  reason          ReturnReason
+  itemCondition   ReturnItemCondition?
+  disposition     InventoryDisposition?
+  // Set exactly once, by InventoryService.restockFromReturn's own atomic
+  // conditional claim (`restockedAt: null` guard) - the idempotency
+  // mechanism that makes "RESTOCK submitted twice" a safe no-op (§15).
+  restockedAt     DateTime?
+  refundAmount    Decimal               @db.Decimal(12, 2)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  orderItem     OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([returnRequestId])
+  @@index([orderItemId])
+  @@map("return_items")
+}
+
+// §16/§17 - reuses the EXACT same MediaUploadService validation (magic
+// bytes, sharp decode, MIME cross-check, SHA-256, size limit) and
+// StorageProvider abstraction as product/variant images - no second upload
+// mechanism. Associated with the ReturnRequest as a whole (not a single
+// ReturnItem) since a customer photographing "the damaged box" often covers
+// more than one line - simpler and sufficient for Phase 10's scope.
+model ReturnEvidence {
+  id               String   @id @default(uuid())
+  storeId          String
+  returnRequestId  String
+  url              String
+  storageKey       String
+  originalFilename String?
+  mimeType         String
+  fileSize         Int
+  contentHash      String
+  uploadedByUserId String
+  createdAt        DateTime @default(now())
+
+  store          Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  returnRequest  ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  uploadedByUser User          @relation(fields: [uploadedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([returnRequestId])
+  @@map("return_evidence")
+}
+
+// §18/§25 - the durable local record of ONE logical refund attempt/outcome.
+// `idempotencyKey` (globally unique, deterministic - "RETURN_REFUND:<id>" or
+// a suffixed retry variant after a genuinely FAILED terminal attempt, never
+// a random value) is what makes concurrent/duplicate refund requests for
+// the same ReturnRequest resolve to at most one real provider call ever
+// succeeding. `providerRefundId` is separately unique per provider so the
+// same remote refund can never be attached to two local rows either.
+model Refund {
+  id               String          @id @default(uuid())
+  storeId          String
+  orderId          String
+  paymentId        String
+  returnRequestId  String
+  amount           Decimal         @db.Decimal(12, 2)
+  currency         String
+  status           RefundStatus    @default(PENDING)
+  provider         PaymentProvider @default(RAZORPAY)
+  providerRefundId String?
+  idempotencyKey   String          @unique
+  failureReason    String?
+  initiatedAt      DateTime        @default(now())
+  succeededAt      DateTime?
+  failedAt         DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment       Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerRefundId])
+  @@index([orderId])
+  @@index([paymentId])
+  @@index([returnRequestId])
+  @@index([storeId, status])
+  // Phase 11 - refund analytics date-range queries filter storeId + createdAt.
+  @@index([storeId, createdAt])
+  @@map("refunds")
+}

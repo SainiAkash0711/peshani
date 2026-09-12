@@ -1,0 +1,21 @@
+{
+  "name": "peshani",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Peshani - professional ecommerce platform monorepo",
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "apps/admin"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace apps/api",
+    "dev:web": "npm run dev --workspace apps/web",
+    "dev:admin": "npm run dev --workspace apps/admin",
+    "build:api": "npm run build --workspace apps/api",
+    "prisma:generate": "npm run prisma:generate --workspace apps/api",
+    "prisma:migrate": "npm run prisma:migrate --workspace apps/api",
+    "prisma:seed": "npm run prisma:seed --workspace apps/api",
+    "test:api": "npm run test --workspace apps/api"
+  }
+}

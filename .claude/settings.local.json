@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "PowerShell(Start-Process \"$env:ProgramFiles\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(npm install *)",
+      "Bash(npm audit *)",
+      "Bash(npx tsc *)",
+      "Bash(nohup node dist/main.js)",
+      "Bash(disown)",
+      "Bash(curl -s -o /dev/null -w \"health status: %{http_code}\\\\n\" http://localhost:4000/api/v1/health)",
+      "Read(//tmp/**)",
+      "Bash(npm run *)"
+    ]
+  }
+}
