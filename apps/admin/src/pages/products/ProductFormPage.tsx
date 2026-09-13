@@ -92,12 +92,12 @@ export function ProductFormPage() {
   const [initialForm, setInitialForm] = useState<FormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
   const [confirmingLeave, setConfirmingLeave] = useState(false);
-  // Which top-level Category is currently selected in the cascading
-  // Category -> Subcategory picker below. form.categoryIds (the actual
-  // submitted value) always holds [selectedCategoryId, ...checked
-  // subcategory ids] - this is purely UI state to drive which
-  // subcategories are shown as checkboxes.
+  // Cascading Category -> Subcategory picker: form.categoryIds (the actual
+  // submitted value) always holds [selectedCategoryId, selectedSubcategoryId]
+  // (subcategory omitted if none chosen) - this pair is purely UI state to
+  // drive which subcategories the second dropdown offers.
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState('');
   const [categorySelectionInitialized, setCategorySelectionInitialized] = useState(false);
 
   const productQuery = useQuery({
@@ -149,23 +149,24 @@ export function ProductFormPage() {
     if (isEditing && !productQuery.data) return;
     const categoryById = new Map(allCategories.map((c) => [c.id, c]));
     const topLevelId = form.categoryIds.find((id) => categoryById.get(id) && !categoryById.get(id)!.parentId);
-    const inferredTopLevelId =
-      topLevelId ?? categoryById.get(form.categoryIds.find((id) => categoryById.get(id)?.parentId) ?? '')?.parentId ?? '';
+    const subcategoryId = form.categoryIds.find((id) => categoryById.get(id)?.parentId);
+    const inferredTopLevelId = topLevelId ?? (subcategoryId ? categoryById.get(subcategoryId)?.parentId : undefined) ?? '';
     setSelectedCategoryId(inferredTopLevelId);
+    setSelectedSubcategoryId(subcategoryId ?? '');
     setCategorySelectionInitialized(true);
   }, [allCategories, categorySelectionInitialized, isEditing, productQuery.data, form.categoryIds]);
 
   function handleCategoryChange(categoryId: string) {
     setSelectedCategoryId(categoryId);
+    setSelectedSubcategoryId('');
     setForm((prev) => ({ ...prev, categoryIds: categoryId ? [categoryId] : [] }));
   }
 
-  function toggleSubcategory(subcategoryId: string) {
+  function handleSubcategoryChange(subcategoryId: string) {
+    setSelectedSubcategoryId(subcategoryId);
     setForm((prev) => ({
       ...prev,
-      categoryIds: prev.categoryIds.includes(subcategoryId)
-        ? prev.categoryIds.filter((c) => c !== subcategoryId)
-        : [...prev.categoryIds, subcategoryId],
+      categoryIds: subcategoryId ? [selectedCategoryId, subcategoryId] : [selectedCategoryId],
     }));
   }
   const attributesQuery = useQuery({
@@ -334,17 +335,14 @@ export function ProductFormPage() {
             ))}
           </SelectField>
           {selectedCategoryId && subcategoriesOfSelected.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 6 }}>Subcategories</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                {subcategoriesOfSelected.map((c) => (
-                  <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
-                    <input type="checkbox" checked={form.categoryIds.includes(c.id)} onChange={() => toggleSubcategory(c.id)} />
-                    {c.name}
-                  </label>
-                ))}
-              </div>
-            </div>
+            <SelectField label="Subcategory" value={selectedSubcategoryId} onChange={(e) => handleSubcategoryChange(e.target.value)}>
+              <option value="">— No subcategory —</option>
+              {subcategoriesOfSelected.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </SelectField>
           )}
           <TextField
             label="Tags (comma-separated)"
