@@ -56,10 +56,16 @@ select {
   position: sticky;
   top: 0;
   background: var(--color-bg);
-  z-index: 10;
+  /* Higher than .mega-nav (z-index: 50) - nested z-index only ranks
+     WITHIN this containing stacking context, so the mobile nav dropdown's
+     own z-index can never out-rank mega-nav (a sibling context) unless
+     this ancestor's own value already does. Same root cause as the hero
+     slider/mega-nav overlap fixed earlier. */
+  z-index: 60;
 }
 
 .site-header__bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -76,8 +82,82 @@ select {
 .site-header__nav {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 20px;
   font-size: 0.95rem;
+}
+
+.site-header__nav-toggle-input {
+  display: none;
+}
+
+.site-header__nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.site-header__nav-toggle:hover {
+  background: var(--color-surface);
+}
+
+.site-header__nav-toggle span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: var(--color-text);
+  border-radius: 2px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+@media (max-width: 800px) {
+  .site-header__nav-toggle {
+    display: flex;
+  }
+
+  .site-header__nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    padding: 8px 20px 16px;
+    /* Higher than .mega-nav's z-index (50) - that bar renders directly
+       below the header in the document and would otherwise sit on top of
+       this dropdown's first ~48px, hiding "All Products"/"Sign In". */
+    z-index: 60;
+  }
+
+  .site-header__nav > * {
+    width: 100%;
+    padding: 10px 0;
+  }
+
+  .site-header__nav-toggle-input:checked ~ .site-header__nav {
+    display: flex;
+  }
+
+  .site-header__nav-toggle-input:checked ~ .site-header__nav-toggle span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .site-header__nav-toggle-input:checked ~ .site-header__nav-toggle span:nth-child(2) {
+    opacity: 0;
+  }
+  .site-header__nav-toggle-input:checked ~ .site-header__nav-toggle span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
 }
 
 .site-header__nav a:hover {
@@ -386,8 +466,15 @@ select {
      of the menu's z-index. */
   z-index: 0;
   width: 100%;
-  height: min(78vh, 640px);
-  min-height: 360px;
+  /* Aspect-ratio-based, not viewport-height-based: a vh-derived height
+     ignores width entirely, so on a narrow/tall phone screen the container
+     shrinks toward a near-square shape while the slide images stay
+     landscape-format - object-fit: cover then has to crop away most of the
+     image's left/right content (and any text baked into it) just to fill
+     that mismatched box. Deriving height from the element's OWN width
+     instead keeps the crop ratio consistent across every screen size. */
+  aspect-ratio: 16 / 9;
+  max-height: 640px;
   overflow: hidden;
   border-radius: 20px;
   background: var(--color-surface);
@@ -400,8 +487,6 @@ select {
   }
 
   .hero-slider {
-    height: min(52vh, 420px);
-    min-height: 280px;
     border-radius: 14px;
   }
 }
