@@ -1,14 +1,25 @@
 :root {
+  /* A deep emerald + warm gold pairing reads as more considered/premium
+     than a single flat brand color - green stays the primary (used
+     everywhere buttons/links/active-states already were), gold is new and
+     reserved for promotional accents (sale badges, dividers) so it never
+     competes with the primary action color. */
   --color-bg: #ffffff;
-  --color-surface: #f7f7f8;
-  --color-border: #e5e7eb;
-  --color-text: #18181b;
-  --color-text-muted: #6b7280;
-  --color-accent: #16a34a;
+  --color-surface: #f7faf8;
+  --color-surface-alt: #eef5f0;
+  --color-border: #e3e8e5;
+  --color-text: #1c2a22;
+  --color-text-muted: #64756c;
+  --color-accent: #0f7a4f;
+  --color-accent-dark: #0b5c3c;
+  --color-accent-soft: #e6f4ec;
   --color-accent-contrast: #ffffff;
+  --color-secondary: #c8862c;
+  --color-secondary-dark: #a86c1e;
+  --color-secondary-contrast: #ffffff;
   --color-danger: #dc2626;
   --color-warning: #b45309;
-  --radius: 8px;
+  --radius: 10px;
   --container-width: 1200px;
 }
 
@@ -624,7 +635,7 @@ select {
 
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.28);
+  box-shadow: 0 8px 20px rgba(15, 122, 79, 0.28);
 }
 
 .btn:active {
@@ -656,8 +667,23 @@ select {
 }
 
 .section__header h2 {
+  position: relative;
   font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0;
+  padding-left: 14px;
+}
+
+.section__header h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 3px;
+  width: 4px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--color-accent), var(--color-secondary));
 }
 
 .section__header a {
@@ -688,14 +714,18 @@ select {
   padding: 22px 12px;
   text-align: center;
   font-weight: 600;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  background: var(--color-surface);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease,
+    background 0.25s ease, color 0.25s ease;
   will-change: transform;
 }
 
 .category-tile:hover {
   border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-dark);
   transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 28px rgba(15, 122, 79, 0.14);
 }
 
 .brand-strip {
@@ -958,7 +988,7 @@ select {
 
 .pdp__thumb.is-active {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+  box-shadow: 0 0 0 3px rgba(15, 122, 79, 0.15);
 }
 
 .pdp__thumb img {
@@ -1030,7 +1060,7 @@ select {
   border-color: var(--color-accent);
   color: var(--color-accent-contrast);
   font-weight: 600;
-  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.28);
+  box-shadow: 0 8px 18px rgba(15, 122, 79, 0.28);
 }
 
 .option-swatch.is-disabled {
