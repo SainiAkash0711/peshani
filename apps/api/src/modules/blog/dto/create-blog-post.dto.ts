@@ -22,8 +22,12 @@ export class CreateBlogPostDto {
   @MaxLength(500)
   excerpt?: string;
 
+  // HTML from the admin's rich text editor - much more verbose than the
+  // equivalent plain text, hence the larger ceiling than a plain field would
+  // need. Sanitized server-side (see BlogPostsService) before it's ever
+  // persisted or rendered.
   @IsString()
-  @MaxLength(50_000)
+  @MaxLength(200_000)
   content!: string;
 
   @IsOptional()

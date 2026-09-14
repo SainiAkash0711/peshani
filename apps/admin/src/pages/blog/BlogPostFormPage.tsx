@@ -5,6 +5,7 @@ import { apiClient, ApiError } from '../../lib/api-client';
 import { useToast } from '../../components/Toast';
 import { Button } from '../../components/Button';
 import { TextField, TextAreaField, SelectField } from '../../components/FormField';
+import { RichTextEditor } from '../../components/RichTextEditor';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { cardStyle, pageHeaderStyle } from '../../styles';
 import { BlogPost, BlogPostStatus } from '../../types/catalog';
@@ -216,12 +217,12 @@ export function BlogPostFormPage() {
             value={form.excerpt}
             onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
           />
-          <TextAreaField
+          <RichTextEditor
             label="Content"
-            rows={16}
             required
             value={form.content}
-            onChange={(e) => setForm({ ...form, content: e.target.value })}
+            onChange={(html) => setForm({ ...form, content: html })}
+            placeholder="Write your post…"
           />
         </div>
 

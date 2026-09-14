@@ -71,7 +71,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               ))}
             </div>
           )}
-          <div className="blog-detail__content">{post.content}</div>
+          {/* Content is HTML from the admin's rich text editor, already
+              sanitized server-side (the one enforcement point - see
+              sanitizeRichTextHtml in the API) before it's ever persisted, so
+              it's trusted here the same way it's trusted coming back from
+              any other @Public() storefront endpoint. */}
+          {/* eslint-disable-next-line react/no-danger */}
+          <div className="blog-detail__content" dangerouslySetInnerHTML={{ __html: post.content }} />
           <Link href="/blogs" className="blog-list-item__readmore" style={{ marginTop: 32, display: 'inline-block' }}>
             ← Back to Blog
           </Link>

@@ -23,7 +23,7 @@ export class UpdateBlogPostDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(50_000)
+  @MaxLength(200_000)
   content?: string;
 
   @IsOptional()

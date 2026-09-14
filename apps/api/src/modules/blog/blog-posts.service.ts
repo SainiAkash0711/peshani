@@ -6,6 +6,7 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import { MediaUploadService } from '../../common/media/media-upload.service';
 import { generateUniqueSlug } from '../../common/utils/slug.util';
 import { paginate } from '../../common/utils/pagination.util';
+import { sanitizeRichTextHtml } from '../../common/utils/html-sanitizer.util';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { CreateBlogPostDto } from './dto/create-blog-post.dto';
 import { UpdateBlogPostDto } from './dto/update-blog-post.dto';
@@ -29,7 +30,7 @@ export class BlogPostsService {
         title: dto.title,
         slug,
         excerpt: dto.excerpt,
-        content: dto.content,
+        content: sanitizeRichTextHtml(dto.content),
         authorName: dto.authorName,
         tags: dto.tags ?? [],
         status,
@@ -104,7 +105,7 @@ export class BlogPostsService {
         title: dto.title ?? existing.title,
         slug,
         excerpt: dto.excerpt !== undefined ? dto.excerpt : existing.excerpt,
-        content: dto.content ?? existing.content,
+        content: dto.content !== undefined ? sanitizeRichTextHtml(dto.content) : existing.content,
         authorName: dto.authorName !== undefined ? dto.authorName : existing.authorName,
         tags: dto.tags ?? existing.tags,
         status: nextStatus,
