@@ -57,6 +57,16 @@ const EMPTY_FORM: FormState = {
   isNewArrival: false,
 };
 
+// The API's price/weight fields are strict decimal strings (no currency
+// symbols, unit suffixes, or comma decimal separators) - a plain free-text
+// input makes it easy to type "0.5 kg" or "1,500" without realizing it, which
+// then surfaces as a generic, field-unattributed validation error only after
+// submitting. Cleaning common real-world variations up before they're sent
+// (not while typing, so it never fights the user's cursor) avoids that.
+function sanitizeDecimalInput(value: string): string {
+  return value.trim().replace(',', '.').replace(/[^\d.]/g, '');
+}
+
 function detailToForm(product: ProductDetail): FormState {
   return {
     name: product.name,
@@ -180,10 +190,10 @@ export function ProductFormPage() {
       slug: form.slug || undefined,
       ...(isEditing ? {} : { productType: form.productType }),
       sku: form.productType === 'SIMPLE' ? form.sku || undefined : undefined,
-      basePrice: form.basePrice,
-      compareAtPrice: form.compareAtPrice || undefined,
-      costPrice: form.costPrice || undefined,
-      weight: form.weight || undefined,
+      basePrice: sanitizeDecimalInput(form.basePrice),
+      compareAtPrice: form.compareAtPrice ? sanitizeDecimalInput(form.compareAtPrice) || undefined : undefined,
+      costPrice: form.costPrice ? sanitizeDecimalInput(form.costPrice) || undefined : undefined,
+      weight: form.weight ? sanitizeDecimalInput(form.weight) || undefined : undefined,
       taxClass: form.taxClass || undefined,
       description: form.description || undefined,
       shortDescription: form.shortDescription || undefined,
@@ -297,18 +307,42 @@ export function ProductFormPage() {
           )}
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <TextField label="Base price" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: e.target.value })} required />
+              <TextField
+                label="Base price"
+                placeholder="e.g. 999.00"
+                value={form.basePrice}
+                onChange={(e) => setForm({ ...form, basePrice: e.target.value })}
+                required
+              />
             </div>
             <div style={{ flex: 1 }}>
-              <TextField label="Compare-at price" value={form.compareAtPrice} onChange={(e) => setForm({ ...form, compareAtPrice: e.target.value })} />
+              <TextField
+                label="Compare-at price"
+                placeholder="e.g. 1299.00"
+                value={form.compareAtPrice}
+                onChange={(e) => setForm({ ...form, compareAtPrice: e.target.value })}
+              />
             </div>
             <div style={{ flex: 1 }}>
-              <TextField label="Cost price" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} />
+              <TextField
+                label="Cost price"
+                placeholder="e.g. 650.00"
+                value={form.costPrice}
+                onChange={(e) => setForm({ ...form, costPrice: e.target.value })}
+              />
             </div>
           </div>
+          <p style={{ fontSize: 11, color: '#9ca3af', marginTop: -8 }}>
+            Numbers only, no currency symbol - up to 2 decimal places (e.g. "999.00", not "₹999" or "999.5kg").
+          </p>
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <TextField label="Weight (kg)" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} />
+              <TextField
+                label="Weight (kg)"
+                placeholder="e.g. 0.5"
+                value={form.weight}
+                onChange={(e) => setForm({ ...form, weight: e.target.value })}
+              />
             </div>
             <div style={{ flex: 1 }}>
               <TextField label="Tax class" value={form.taxClass} onChange={(e) => setForm({ ...form, taxClass: e.target.value })} />
