@@ -42,6 +42,7 @@ model Store {
   productVariants         ProductVariant[]
   productImages           ProductImage[]
   homepageSlides          HomepageSlide[]
+  blogPosts               BlogPost[]
   variantImages           VariantImage[]
   priceHistories          PriceHistory[]
   warehouses              Warehouse[]
@@ -610,6 +611,40 @@ model HomepageSlide {
 
   @@index([storeId, isActive, sortOrder])
   @@map("homepage_slides")
+}
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model BlogPost {
+  id               String         @id @default(uuid())
+  storeId          String
+  slug             String
+  title            String
+  excerpt          String?
+  content          String
+  coverImageUrl    String?
+  storageKey       String?
+  originalFilename String?
+  mimeType         String?
+  fileSize         Int?
+  width            Int?
+  height           Int?
+  contentHash      String?
+  authorName       String?
+  tags             String[]       @default([])
+  status           BlogPostStatus @default(DRAFT)
+  publishedAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, slug])
+  @@index([storeId, status, publishedAt])
+  @@map("blog_posts")
 }
 
 model VariantImage {

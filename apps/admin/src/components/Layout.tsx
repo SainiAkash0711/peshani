@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth-context';
 const NAV_ITEMS: { to: string; label: string; permission?: string }[] = [
   { to: '/analytics', label: 'Analytics', permission: 'analytics.read' },
   { to: '/homepage-slides', label: 'Homepage Slider', permission: 'homepage_slides.manage' },
+  { to: '/blog', label: 'Blog', permission: 'blog.manage' },
   { to: '/products', label: 'Products' },
   { to: '/categories', label: 'Categories' },
   { to: '/subcategories', label: 'Subcategories' },

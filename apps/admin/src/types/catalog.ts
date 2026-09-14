@@ -63,6 +63,23 @@ export interface AttributeValue {
   updatedAt: string;
 }
 
+export type BlogPostStatus = 'DRAFT' | 'PUBLISHED';
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  content: string;
+  coverImageUrl?: string | null;
+  authorName?: string | null;
+  tags: string[];
+  status: BlogPostStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type ProductVariantStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
 
 export interface VariantAttributeValueLabel {

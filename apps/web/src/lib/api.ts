@@ -1,4 +1,7 @@
 import type {
+  BlogPostDetail,
+  BlogPostSummary,
+  BlogSidebarData,
   BrandDetail,
   BrandSummary,
   CategoryDetail,
@@ -157,4 +160,24 @@ export async function getSitemapCategories(): Promise<SitemapEntry[]> {
 export async function getSitemapBrands(): Promise<SitemapEntry[]> {
   const data = await getJson<{ items: SitemapEntry[] }>('/storefront/sitemap/brands', 300);
   return data?.items ?? [];
+}
+
+export interface BlogPostListParams {
+  page?: number;
+  pageSize?: number;
+  tag?: string;
+}
+
+export async function getBlogPosts(params: BlogPostListParams = {}): Promise<PaginatedResult<BlogPostSummary>> {
+  const data = await getJson<PaginatedResult<BlogPostSummary>>(`/storefront/blog-posts${toQueryString(params)}`, 60);
+  return data ?? { items: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 } };
+}
+
+export async function getBlogPostBySlug(slug: string): Promise<BlogPostDetail | null> {
+  return getJson<BlogPostDetail>(`/storefront/blog-posts/${encodeURIComponent(slug)}`, 60);
+}
+
+export async function getBlogSidebar(): Promise<BlogSidebarData> {
+  const data = await getJson<BlogSidebarData>('/storefront/blog-posts/sidebar', 60);
+  return data ?? { recentPosts: [], tags: [] };
 }

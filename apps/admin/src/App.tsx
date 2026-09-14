@@ -22,6 +22,8 @@ import { ReviewsPage } from './pages/reviews/ReviewsPage';
 import { NotificationsPage } from './pages/notifications/NotificationsPage';
 import { NotificationTemplatesPage } from './pages/notification-templates/NotificationTemplatesPage';
 import { HomepageSlidesPage } from './pages/homepage-slides/HomepageSlidesPage';
+import { BlogPostsPage } from './pages/blog/BlogPostsPage';
+import { BlogPostFormPage } from './pages/blog/BlogPostFormPage';
 
 function ProtectedLayout() {
   const { user, isLoading } = useAuth();
@@ -62,6 +64,9 @@ export function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/notification-templates" element={<NotificationTemplatesPage />} />
         <Route path="/homepage-slides" element={<HomepageSlidesPage />} />
+        <Route path="/blog" element={<BlogPostsPage />} />
+        <Route path="/blog/new" element={<BlogPostFormPage />} />
+        <Route path="/blog/:id/edit" element={<BlogPostFormPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -117,6 +117,26 @@ export interface HomepageSlide {
   linkUrl: string | null;
 }
 
+export interface BlogPostSummary {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  coverImageUrl: string | null;
+  authorName: string | null;
+  tags: string[];
+  publishedAt: string;
+}
+
+export interface BlogPostDetail extends BlogPostSummary {
+  content: string;
+}
+
+export interface BlogSidebarData {
+  recentPosts: BlogPostSummary[];
+  tags: string[];
+}
+
 export interface HomePageData {
   slides: HomepageSlide[];
   featuredProducts: ProductListItem[];

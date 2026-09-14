@@ -7,6 +7,7 @@ import { StorefrontBrandsController } from './storefront-brands.controller';
 import { StorefrontHomeController } from './storefront-home.controller';
 import { StorefrontSearchController } from './storefront-search.controller';
 import { StorefrontSitemapController } from './storefront-sitemap.controller';
+import { StorefrontBlogController } from './storefront-blog.controller';
 import { StorefrontProductsService } from './storefront-products.service';
 import { StorefrontCategoriesService } from './storefront-categories.service';
 import { StorefrontBrandsService } from './storefront-brands.service';
@@ -14,6 +15,7 @@ import { StorefrontHomeService } from './storefront-home.service';
 import { StorefrontInventoryService } from './storefront-inventory.service';
 import { StorefrontSearchService } from './storefront-search.service';
 import { StorefrontSitemapService } from './storefront-sitemap.service';
+import { StorefrontBlogService } from './storefront-blog.service';
 
 /**
  * Read-only public storefront surface (Phase 3): products, categories,
@@ -33,6 +35,7 @@ import { StorefrontSitemapService } from './storefront-sitemap.service';
     StorefrontHomeController,
     StorefrontSearchController,
     StorefrontSitemapController,
+    StorefrontBlogController,
   ],
   providers: [
     StorefrontProductsService,
@@ -42,6 +45,7 @@ import { StorefrontSitemapService } from './storefront-sitemap.service';
     StorefrontInventoryService,
     StorefrontSearchService,
     StorefrontSitemapService,
+    StorefrontBlogService,
   ],
   exports: [StorefrontInventoryService],
 })

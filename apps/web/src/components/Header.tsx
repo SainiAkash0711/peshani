@@ -28,6 +28,7 @@ export async function Header() {
           <Link href="/products">All Products</Link>
           <Link href="/categories">Categories</Link>
           <Link href="/brands">Brands</Link>
+          <Link href="/blogs">Blog</Link>
           <AuthStatusLink />
           <NotificationBell />
           <WishlistCountBadge />
