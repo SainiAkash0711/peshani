@@ -4,6 +4,7 @@ import { CartCountBadge } from './CartCountBadge';
 import { WishlistCountBadge } from './WishlistCountBadge';
 import { NotificationBell } from './NotificationBell';
 import { AuthStatusLink } from './AuthStatusLink';
+import { Logo } from './Logo';
 
 export async function Header() {
   const settings = await getStoreSettings();
@@ -12,7 +13,7 @@ export async function Header() {
     <header className="site-header">
       <div className="container site-header__bar">
         <Link href="/" className="site-header__brand">
-          {settings.storeName}
+          <Logo name={settings.storeName} />
         </Link>
         {/* Plain GET form to /search - no client JS needed, works even with
             JavaScript disabled, and reuses the existing /search page/API
