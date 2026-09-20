@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth-context';
 import { ApiError } from '../lib/api-client';
 import { TextField } from '../components/FormField';
 import { Button } from '../components/Button';
+import { Logo } from '../components/Logo';
 
 export function LoginPage() {
   const { user, login } = useAuth();
@@ -50,7 +51,10 @@ export function LoginPage() {
           width: 360,
         }}
       >
-        <h1 style={{ fontSize: 20, margin: '0 0 4px' }}>Peshani Admin</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <Logo size={32} />
+          <h1 style={{ fontSize: 20, margin: 0 }}>Peshani Admin</h1>
+        </div>
         <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 20px' }}>Sign in to manage your store</p>
         <TextField
           label="Email"

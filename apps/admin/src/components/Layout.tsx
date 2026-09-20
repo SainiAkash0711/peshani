@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
+import { Logo } from './Logo';
 
 const NAV_ITEMS: { to: string; label: string; permission?: string }[] = [
   { to: '/analytics', label: 'Analytics', permission: 'analytics.read' },
@@ -29,7 +30,10 @@ export function Layout() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
       <aside style={{ width: 220, background: '#111827', color: '#e5e7eb', padding: '20px 0', flexShrink: 0 }}>
-        <div style={{ padding: '0 20px 20px', fontSize: 18, fontWeight: 700, color: '#fff' }}>Peshani Admin</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 20px' }}>
+          <Logo size={30} />
+          <span style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>Peshani Admin</span>
+        </div>
         <nav style={{ display: 'flex', flexDirection: 'column' }}>
           {visibleNavItems.map((item) => (
             <NavLink

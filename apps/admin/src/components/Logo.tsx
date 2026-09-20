@@ -1,0 +1,27 @@
+/**
+ * Same brand mark as the storefront (apps/web/src/components/Logo.tsx): a
+ * shopping cart with a two-tone leaf sprig and berry growing out of it,
+ * inside a thin badge ring - flat colors, no gradients/texture, so it
+ * still reads clearly at small sizes and on this admin's dark sidebar.
+ * Colors are hardcoded (not CSS variables) since this app has no
+ * :root theme tokens, unlike the storefront - kept identical to the hex
+ * values in apps/web's palette (--color-accent/-dark, --color-secondary/-dark).
+ */
+export function Logo({ size = 28 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 40 40" width={size} height={size} aria-hidden="true">
+      <circle cx="20" cy="20" r="18.3" fill="none" stroke="#c8862c" strokeWidth="1.3" />
+      <path d="M10 16 Q5 16 4 9.5" fill="none" stroke="#a86c1e" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M20 12 C16 11 13 7.5 14 2.5 C18 3.5 21 7 20 12 Z" fill="#0f7a4f" />
+      <path d="M20 12 C24 11 27 7.5 26 2.5 C22 3.5 19 7 20 12 Z" fill="#0b5c3c" />
+      <circle cx="20" cy="12.6" r="1.4" fill="#c8862c" />
+      <path
+        d="M10 16 L30 16 L26.5 28 C26.3 28.8 25.6 29.5 24.7 29.5 L15.3 29.5 C14.4 29.5 13.7 28.8 13.5 28 Z"
+        fill="#c8862c"
+      />
+      <rect x="10" y="15" width="20" height="2" rx="1" fill="#a86c1e" />
+      <circle cx="16.5" cy="33.5" r="2.3" fill="#a86c1e" />
+      <circle cx="23.5" cy="33.5" r="2.3" fill="#a86c1e" />
+    </svg>
+  );
+}
