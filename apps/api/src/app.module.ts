@@ -18,6 +18,7 @@ import { ProductVariantsModule } from './modules/product-variants/product-varian
 import { ProductImagesModule } from './modules/product-images/product-images.module';
 import { HomepageSlidesModule } from './modules/homepage-slides/homepage-slides.module';
 import { BlogPostsModule } from './modules/blog/blog-posts.module';
+import { ContactModule } from './modules/contact/contact.module';
 import { VariantImagesModule } from './modules/variant-images/variant-images.module';
 import { WarehousesModule } from './modules/warehouses/warehouses.module';
 import { ShippingMethodsModule } from './modules/shipping-methods/shipping-methods.module';
@@ -63,6 +64,7 @@ import { throttleLimit } from './common/utils/throttle.util';
     ProductImagesModule,
     HomepageSlidesModule,
     BlogPostsModule,
+    ContactModule,
     VariantImagesModule,
     WarehousesModule,
     ShippingMethodsModule,

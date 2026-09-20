@@ -45,6 +45,14 @@ import { LoggingEmailProvider } from './providers/logging-email.provider';
     SmtpEmailProvider,
     LoggingEmailProvider,
   ],
-  exports: [OutboxService, NotificationService, NotificationTemplateService, NotificationPreferenceService, OutboxWorkerService, EmailDeliveryWorkerService],
+  exports: [
+    OutboxService,
+    NotificationService,
+    NotificationTemplateService,
+    NotificationPreferenceService,
+    OutboxWorkerService,
+    EmailDeliveryWorkerService,
+    EMAIL_PROVIDER,
+  ],
 })
 export class NotificationsModule {}

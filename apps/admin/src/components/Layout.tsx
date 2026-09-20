@@ -4,6 +4,7 @@ import { Logo } from './Logo';
 
 const NAV_ITEMS: { to: string; label: string; permission?: string }[] = [
   { to: '/store-settings', label: 'Store Settings', permission: 'settings.store.manage' },
+  { to: '/contact-messages', label: 'Contact Messages', permission: 'contact_message.read' },
   { to: '/analytics', label: 'Analytics', permission: 'analytics.read' },
   { to: '/homepage-slides', label: 'Homepage Slider', permission: 'homepage_slides.manage' },
   { to: '/blog', label: 'Blog', permission: 'blog.manage' },

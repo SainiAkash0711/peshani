@@ -5,6 +5,7 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { Providers } from '../components/Providers';
 import { WhatsAppButton } from '../components/WhatsAppButton';
+import { ContactFormButton } from '../components/ContactFormButton';
 import { getStoreSettings } from '../lib/api';
 import { SITE_URL } from '../lib/site';
 import { safeJsonLd } from '../lib/json-ld';
@@ -63,7 +64,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <Header />
           {children}
           <Footer />
-          <WhatsAppButton phone={settings.supportPhone} />
+          <div className="fab-stack">
+            <ContactFormButton />
+            <WhatsAppButton phone={settings.supportPhone} />
+          </div>
         </Providers>
         {/* eslint-disable-next-line react/no-danger */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationJsonLd) }} />

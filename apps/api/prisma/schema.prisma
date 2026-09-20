@@ -43,6 +43,7 @@ model Store {
   productImages           ProductImage[]
   homepageSlides          HomepageSlide[]
   blogPosts               BlogPost[]
+  contactMessages         ContactMessage[]
   variantImages           VariantImage[]
   priceHistories          PriceHistory[]
   warehouses              Warehouse[]
@@ -611,6 +612,22 @@ model HomepageSlide {
 
   @@index([storeId, isActive, sortOrder])
   @@map("homepage_slides")
+}
+
+model ContactMessage {
+  id          String    @id @default(uuid())
+  storeId     String
+  name        String
+  email       String
+  phone       String?
+  message     String
+  createdAt   DateTime  @default(now())
+  emailSentAt DateTime?
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, createdAt])
+  @@map("contact_messages")
 }
 
 enum BlogPostStatus {

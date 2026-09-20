@@ -25,6 +25,7 @@ import { HomepageSlidesPage } from './pages/homepage-slides/HomepageSlidesPage';
 import { BlogPostsPage } from './pages/blog/BlogPostsPage';
 import { BlogPostFormPage } from './pages/blog/BlogPostFormPage';
 import { StoreSettingsPage } from './pages/store-settings/StoreSettingsPage';
+import { ContactMessagesPage } from './pages/contact-messages/ContactMessagesPage';
 
 function ProtectedLayout() {
   const { user, isLoading } = useAuth();
@@ -45,6 +46,7 @@ export function App() {
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Navigate to="/products" replace />} />
         <Route path="/store-settings" element={<StoreSettingsPage />} />
+        <Route path="/contact-messages" element={<ContactMessagesPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/subcategories" element={<SubcategoriesPage />} />

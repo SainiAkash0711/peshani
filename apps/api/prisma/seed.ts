@@ -119,6 +119,7 @@ const PERMISSIONS = [
   { key: 'audit.view', description: 'View audit logs' },
   { key: 'homepage_slides.manage', description: 'Manage the customer storefront homepage slider/banner' },
   { key: 'blog.manage', description: 'Manage blog posts' },
+  { key: 'contact_message.read', description: 'View contact form submissions' },
 ];
 
 async function main() {

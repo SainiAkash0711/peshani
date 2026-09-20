@@ -14,7 +14,7 @@ export function WhatsAppButton({ phone }: { phone?: string }) {
   const href = `https://wa.me/${digitsOnly}?text=${encodeURIComponent(DEFAULT_MESSAGE)}`;
 
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="whatsapp-fab" aria-label="Chat with us on WhatsApp">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="fab-btn fab-btn--whatsapp" aria-label="Chat with us on WhatsApp">
       <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
         <path
           fill="#ffffff"
