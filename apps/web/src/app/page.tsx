@@ -1,9 +1,12 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 import { getCategoryTree, getHomePage, getStoreSettings } from '../lib/api';
 import { ProductCard } from '../components/ProductCard';
 import { HeroSlider } from '../components/HeroSlider';
 import { CategoryMegaMenu } from '../components/CategoryMegaMenu';
+import { TrustBadges } from '../components/TrustBadges';
+import { isAllowedImageUrl } from '../lib/safe-image';
 import { SITE_URL } from '../lib/site';
 
 // Live catalog/inventory data, not a build-time constant - rendering it at
@@ -43,6 +46,8 @@ export default async function HomePage() {
       )}
 
       <div className="container">
+        <TrustBadges />
+
         {home.featuredCategories.length > 0 && (
           <section className="section">
             <div className="section__header">
@@ -52,6 +57,11 @@ export default async function HomePage() {
             <div className="category-grid">
               {home.featuredCategories.map((category) => (
                 <Link key={category.id} href={`/categories/${category.slug}`} className="category-tile">
+                  {category.image && isAllowedImageUrl(category.image) && (
+                    <span className="category-tile__image">
+                      <Image src={category.image} alt="" fill sizes="(max-width: 640px) 30vw, 160px" />
+                    </span>
+                  )}
                   {category.name}
                 </Link>
               ))}

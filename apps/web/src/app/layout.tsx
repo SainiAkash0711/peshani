@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -6,6 +7,14 @@ import { Providers } from '../components/Providers';
 import { getStoreSettings } from '../lib/api';
 import { SITE_URL } from '../lib/site';
 import { safeJsonLd } from '../lib/json-ld';
+
+// A distinctive serif for section headings only ("Featured Products", "Shop
+// by Category", etc.) - everything else keeps the existing system-font
+// stack. next/font self-hosts the font at build time (no runtime request to
+// Google, no CLS/CSP concerns), and exposes it as a CSS variable so
+// globals.css can opt individual selectors in rather than changing the
+// site's base typography.
+const headingFont = Playfair_Display({ subsets: ['latin'], weight: ['600', '700'], variable: '--font-heading', display: 'swap' });
 
 export async function generateMetadata() {
   const settings = await getStoreSettings();
@@ -47,7 +56,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   };
 
   return (
-    <html lang="en">
+    <html lang="en" className={headingFont.variable}>
       <body>
         <Providers>
           <Header />

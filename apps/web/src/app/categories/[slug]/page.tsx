@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getCategoryBySlug, getCategoryProducts, getStoreSettings } from '../../../lib/api';
 import { Breadcrumbs } from '../../../components/Breadcrumbs';
 import { ProductCard } from '../../../components/ProductCard';
 import { Pagination } from '../../../components/Pagination';
+import { isAllowedImageUrl } from '../../../lib/safe-image';
 import { absoluteUrl } from '../../../lib/site';
 import { safeJsonLd } from '../../../lib/json-ld';
 
@@ -73,6 +75,11 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         <div className="category-grid" style={{ marginBottom: 32 }}>
           {category.children.map((child) => (
             <Link key={child.id} href={`/categories/${child.slug}`} className="category-tile">
+              {child.image && isAllowedImageUrl(child.image) && (
+                <span className="category-tile__image">
+                  <Image src={child.image} alt="" fill sizes="(max-width: 640px) 30vw, 160px" />
+                </span>
+              )}
               {child.name}
             </Link>
           ))}
