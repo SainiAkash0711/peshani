@@ -612,7 +612,7 @@ select {
      that mismatched box. Deriving height from the element's OWN width
      instead keeps the crop ratio consistent across every screen size. */
   aspect-ratio: 16 / 9;
-  max-height: 640px;
+  max-height: 480px;
   overflow: hidden;
   border-radius: 20px;
   background: var(--color-surface);
