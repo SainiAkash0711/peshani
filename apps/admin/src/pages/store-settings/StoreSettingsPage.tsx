@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient, ApiError } from '../../lib/api-client';
 import { useToast } from '../../components/Toast';
@@ -45,8 +45,16 @@ export function StoreSettingsPage() {
     queryFn: () => apiClient.get<StoreSettingsMap>('/store-settings'),
   });
 
+  // Seeds the form only from the FIRST successful load. React Query
+  // refetches this in the background (e.g. on window focus), and without
+  // this guard that refetch would re-run this effect and silently overwrite
+  // whatever the user had already typed - which is exactly what made "Save
+  // changes" look stuck disabled: form and initialForm both got reset to
+  // the same (stale) values, so isDirty went back to false mid-edit.
+  const hasSeededForm = useRef(false);
   useEffect(() => {
-    if (settingsQuery.data) {
+    if (settingsQuery.data && !hasSeededForm.current) {
+      hasSeededForm.current = true;
       const next: StoreSettingsMap = {};
       for (const field of FIELDS) next[field.key] = settingsQuery.data[field.key] ?? '';
       setForm(next);
