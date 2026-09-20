@@ -224,6 +224,29 @@ select {
   color: var(--color-accent);
 }
 
+.site-header__icon-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text);
+}
+
+.site-header__icon-link:hover {
+  color: var(--color-accent);
+}
+
+.site-header__icon-badge {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  line-height: 1.4;
+  min-width: 18px;
+  text-align: center;
+}
+
 .profile-menu {
   position: relative;
 }
