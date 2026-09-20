@@ -70,6 +70,8 @@ export interface ProductListItem {
   categories: CategorySummary[];
   primaryImage: ProductImageRef | null;
   availability: Availability;
+  rating: number | null;
+  reviewCount: number;
 }
 
 export interface ProductVariantOption {

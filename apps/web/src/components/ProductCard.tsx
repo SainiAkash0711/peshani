@@ -6,6 +6,24 @@ import { isAllowedImageUrl } from '../lib/safe-image';
 import { AvailabilityBadge } from './AvailabilityBadge';
 import { WishlistButton } from './WishlistButton';
 
+// Same visual convention as ProductReviews.tsx's Stars component (amber
+// filled / light gray empty, rounded to the nearest whole star) - kept as
+// its own small copy here rather than a shared import, since a product
+// card's rating is read-only decoration with no interaction, unlike the
+// review list it mirrors the look of.
+function CardRating({ rating, reviewCount }: { rating: number; reviewCount: number }) {
+  const rounded = Math.round(rating);
+  return (
+    <span className="card__rating" aria-label={`${rating} out of 5 stars, ${reviewCount} review${reviewCount === 1 ? '' : 's'}`}>
+      <span style={{ color: '#f59e0b', letterSpacing: 1 }}>
+        {'★'.repeat(rounded)}
+        <span style={{ color: '#e5e7eb' }}>{'★'.repeat(5 - rounded)}</span>
+      </span>
+      <span className="card__rating-count">({reviewCount})</span>
+    </span>
+  );
+}
+
 export function ProductCard({ product, currencySymbol }: { product: ProductListItem; currencySymbol?: string }) {
   return (
     <Link href={`/products/${product.slug}`} className="card" style={{ position: 'relative' }}>
@@ -27,6 +45,9 @@ export function ProductCard({ product, currencySymbol }: { product: ProductListI
       <div className="card__body">
         {product.brand && <span className="card__brand">{product.brand.name}</span>}
         <span className="card__name">{product.name}</span>
+        {product.reviewCount > 0 && product.rating !== null && (
+          <CardRating rating={product.rating} reviewCount={product.reviewCount} />
+        )}
         <div className="card__price">
           {product.priceRange ? (
             <span className="card__price-current">

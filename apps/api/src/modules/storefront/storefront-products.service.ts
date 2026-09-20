@@ -331,6 +331,7 @@ export class StorefrontProductsService {
   private async mapRows(storeId: string, rows: ListRow[]) {
     const productIds = rows.map((r) => r.id);
     const inventoryMap = await this.inventoryService.getBulkAvailability(storeId, productIds);
+    const ratingByProduct = await this.getRatingSummaries(storeId, productIds);
 
     // VARIABLE products price off their variant range, not basePrice - loaded
     // in one grouped query for the whole page rather than one per product.
@@ -371,11 +372,39 @@ export class StorefrontProductsService {
         availability = combineAvailability(variantAvailabilityByProduct.get(row.id) ?? []);
       }
 
-      return this.mapListRow(row, availability, prices);
+      return this.mapListRow(row, availability, prices, ratingByProduct.get(row.id));
     });
   }
 
-  private mapListRow(row: ListRow, availability: PublicAvailability, variantPrices?: string[]) {
+  /**
+   * Batched, single-query rating aggregate for a page of products - same
+   * groupBy shape and the same "what counts as a visible review" rule
+   * (APPROVED, not deleted) as ReviewsService.getRatingSummary, just grouped
+   * by product instead of computed for one. Never one query per product.
+   */
+  private async getRatingSummaries(storeId: string, productIds: string[]) {
+    if (productIds.length === 0) return new Map<string, { average: number; count: number }>();
+
+    const grouped = await this.prisma.productReview.groupBy({
+      by: ['productId'],
+      where: { storeId, productId: { in: productIds }, status: 'APPROVED', deletedAt: null },
+      _avg: { rating: true },
+      _count: { _all: true },
+    });
+
+    return new Map(
+      grouped
+        .filter((g): g is typeof g & { productId: string } => g.productId !== null)
+        .map((g) => [g.productId, { average: Number((g._avg.rating ?? 0).toFixed(2)), count: g._count._all }]),
+    );
+  }
+
+  private mapListRow(
+    row: ListRow,
+    availability: PublicAvailability,
+    variantPrices?: string[],
+    rating?: { average: number; count: number },
+  ) {
     const { brand, categories, images, ...rest } = row;
 
     let priceRange: { min: string; max: string } | undefined;
@@ -393,6 +422,8 @@ export class StorefrontProductsService {
       categories: categories.map((c) => c.category),
       primaryImage: images[0] ?? null,
       availability,
+      rating: rating?.count ? rating.average : null,
+      reviewCount: rating?.count ?? 0,
     };
   }
 }

@@ -98,6 +98,22 @@ export default async function HomePage() {
             </div>
           </section>
         )}
+
+        {home.brands.length > 0 && (
+          <section className="section">
+            <div className="section__header">
+              <h2>Our Brands</h2>
+              <Link href="/brands">View all</Link>
+            </div>
+            <div className="brand-strip">
+              {home.brands.map((brand) => (
+                <Link key={brand.id} href={`/brands/${brand.slug}`} className="brand-chip">
+                  {brand.name}
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );
