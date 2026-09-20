@@ -120,6 +120,8 @@ const PERMISSIONS = [
   { key: 'homepage_slides.manage', description: 'Manage the customer storefront homepage slider/banner' },
   { key: 'blog.manage', description: 'Manage blog posts' },
   { key: 'contact_message.read', description: 'View contact form submissions' },
+  { key: 'contact_message.reply', description: 'Reply to a contact form submission by email' },
+  { key: 'contact_message.delete', description: 'Delete a contact form submission' },
 ];
 
 async function main() {

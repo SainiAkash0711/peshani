@@ -146,6 +146,7 @@ model User {
   notificationPreferences NotificationPreference[]
   returnRequests          ReturnRequest[]
   uploadedReturnEvidence  ReturnEvidence[]
+  contactMessageReplies   ContactMessageReply[]
 
   @@unique([storeId, email])
   @@map("users")
@@ -624,10 +625,26 @@ model ContactMessage {
   createdAt   DateTime  @default(now())
   emailSentAt DateTime?
 
-  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store   Store                  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  replies ContactMessageReply[]
 
   @@index([storeId, createdAt])
   @@map("contact_messages")
+}
+
+model ContactMessageReply {
+  id               String   @id @default(uuid())
+  contactMessageId String
+  message          String
+  sentAt           DateTime @default(now())
+  sentByUserId     String
+  emailSentAt      DateTime?
+
+  contactMessage ContactMessage @relation(fields: [contactMessageId], references: [id], onDelete: Cascade)
+  sentByUser     User           @relation(fields: [sentByUserId], references: [id])
+
+  @@index([contactMessageId])
+  @@map("contact_message_replies")
 }
 
 enum BlogPostStatus {

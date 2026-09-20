@@ -1,11 +1,14 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { paginate } from '../../common/utils/pagination.util';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { StoreSettingsService } from '../store-settings/store-settings.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { EMAIL_PROVIDER } from '../notifications/providers/email-provider.tokens';
 import { EmailProvider } from '../notifications/providers/email-provider.interface';
+import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { CreateContactMessageDto } from './dto/create-contact-message.dto';
+import { CreateContactReplyDto } from './dto/create-contact-reply.dto';
 
 /**
  * The contact form's one job is to never lose a customer's message - the DB
@@ -22,6 +25,7 @@ export class ContactService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storeSettingsService: StoreSettingsService,
+    private readonly auditLogService: AuditLogService,
     @Inject(EMAIL_PROVIDER) private readonly emailProvider: EmailProvider,
   ) {}
 
@@ -69,10 +73,88 @@ export class ContactService {
         orderBy: { createdAt: 'desc' },
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
+        include: { _count: { select: { replies: true } } },
       }),
       this.prisma.contactMessage.count({ where }),
     ]);
-    return paginate(items, total, query.page, query.pageSize);
+    const mapped = items.map(({ _count, ...rest }) => ({ ...rest, replyCount: _count.replies }));
+    return paginate(mapped, total, query.page, query.pageSize);
+  }
+
+  async findOne(storeId: string, id: string) {
+    const message = await this.prisma.contactMessage.findFirst({
+      where: { id, storeId },
+      include: {
+        replies: {
+          orderBy: { sentAt: 'asc' },
+          include: { sentByUser: { select: { email: true, firstName: true, lastName: true } } },
+        },
+      },
+    });
+    if (!message) {
+      throw new NotFoundException('Contact message not found');
+    }
+    return message;
+  }
+
+  async remove(storeId: string, id: string, actor: AuthenticatedUser) {
+    const existing = await this.getScopedMessageOrThrow(storeId, id);
+    await this.prisma.contactMessage.delete({ where: { id: existing.id } });
+
+    await this.auditLogService.record({
+      storeId,
+      userId: actor.userId,
+      action: 'ContactMessageDeleted',
+      entityType: 'ContactMessage',
+      entityId: existing.id,
+      metadata: { before: existing },
+    });
+
+    return { id: existing.id };
+  }
+
+  /**
+   * Same durable-first, best-effort-email-second contract as create(): the
+   * reply row is saved regardless of whether the outbound email actually
+   * sends, so a reply is never silently lost just because SMTP isn't
+   * configured (or the customer's address bounces).
+   */
+  async reply(storeId: string, id: string, dto: CreateContactReplyDto, actor: AuthenticatedUser) {
+    const original = await this.getScopedMessageOrThrow(storeId, id);
+
+    const saved = await this.prisma.contactMessageReply.create({
+      data: {
+        contactMessageId: original.id,
+        message: dto.message,
+        sentByUserId: actor.userId,
+      },
+    });
+
+    const store = await this.storeSettingsService.getDefaultStore();
+    try {
+      await this.emailProvider.send({
+        to: original.email,
+        subject: `Re: your message to ${store.name}`,
+        text: dto.message,
+        html: `<p>${this.escapeHtml(dto.message).replace(/\n/g, '<br>')}</p>`,
+      });
+      return this.prisma.contactMessageReply.update({ where: { id: saved.id }, data: { emailSentAt: new Date() } });
+    } catch (error) {
+      this.logger.error(`Failed to email reply ${saved.id} for contact message ${original.id}: ${error}`);
+      return saved;
+    }
+  }
+
+  private async getScopedMessageOrThrow(storeId: string, id: string) {
+    const message = await this.prisma.contactMessage.findFirst({ where: { id, storeId } });
+    if (!message) {
+      throw new NotFoundException('Contact message not found');
+    }
+    return message;
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   private renderText(dto: CreateContactMessageDto): string {
