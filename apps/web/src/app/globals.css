@@ -224,6 +224,60 @@ select {
   color: var(--color-accent);
 }
 
+.site-header__nav-link {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  position: relative;
+}
+
+.site-header__nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -4px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  transition: right 0.2s ease;
+}
+
+.site-header__nav-link:hover::after {
+  right: 0;
+}
+
+.site-header__auth-btn {
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-accent);
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.site-header__auth-btn--outline {
+  color: var(--color-accent-dark);
+}
+
+/* Extra `.site-header__nav a` qualifier is deliberate: it makes these two
+   rules MORE specific than the generic `.site-header__nav a:hover { color:
+   var(--color-accent) }` rule above, which would otherwise win the cascade
+   and paint the solid button's text green-on-green (unreadable) on hover. */
+.site-header__nav a.site-header__auth-btn--outline:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-dark);
+}
+
+.site-header__auth-btn--solid {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.site-header__nav a.site-header__auth-btn--solid:hover {
+  background: var(--color-accent-dark);
+  color: var(--color-accent-contrast);
+  transform: translateY(-1px);
+}
+
 .site-header__icon-link {
   display: inline-flex;
   align-items: center;

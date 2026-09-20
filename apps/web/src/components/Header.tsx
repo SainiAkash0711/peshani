@@ -39,10 +39,18 @@ export async function Header() {
           <span></span>
         </label>
         <nav className="site-header__nav">
-          <Link href="/products">All Products</Link>
-          <Link href="/categories">Categories</Link>
-          <Link href="/brands">Brands</Link>
-          <Link href="/blogs">Blog</Link>
+          <Link href="/products" className="site-header__nav-link">
+            All Products
+          </Link>
+          <Link href="/categories" className="site-header__nav-link">
+            Categories
+          </Link>
+          <Link href="/brands" className="site-header__nav-link">
+            Brands
+          </Link>
+          <Link href="/blogs" className="site-header__nav-link">
+            Blog
+          </Link>
           <AuthStatusLink />
           <NotificationBell />
           <WishlistCountBadge />

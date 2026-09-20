@@ -11,8 +11,12 @@ export function AuthStatusLink() {
   if (!user) {
     return (
       <>
-        <Link href="/login">Sign In</Link>
-        <Link href="/register">Sign Up</Link>
+        <Link href="/login" className="site-header__auth-btn site-header__auth-btn--outline">
+          Sign In
+        </Link>
+        <Link href="/register" className="site-header__auth-btn site-header__auth-btn--solid">
+          Sign Up
+        </Link>
       </>
     );
   }
