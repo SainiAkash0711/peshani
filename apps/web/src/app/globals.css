@@ -540,15 +540,20 @@ select {
 
 .mega-nav__sub-link {
   display: block;
-  padding: 6px 0;
-  font-size: 0.88rem;
-  color: var(--color-text-muted);
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface);
   break-inside: avoid;
-  transition: color 0.15s ease, transform 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
 .mega-nav__sub-link:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-dark);
+  background: var(--color-accent-soft);
   transform: translateX(3px);
 }
 
