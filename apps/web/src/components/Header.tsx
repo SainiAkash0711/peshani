@@ -5,6 +5,7 @@ import { WishlistCountBadge } from './WishlistCountBadge';
 import { NotificationBell } from './NotificationBell';
 import { AuthStatusLink } from './AuthStatusLink';
 import { Logo } from './Logo';
+import { MobileNavAutoClose } from './MobileNavAutoClose';
 
 export async function Header() {
   const settings = await getStoreSettings();
@@ -39,6 +40,7 @@ export async function Header() {
           <span></span>
           <span></span>
         </label>
+        <MobileNavAutoClose />
         <nav className="site-header__nav">
           <Link href="/products" className="site-header__nav-link">
             All Products
