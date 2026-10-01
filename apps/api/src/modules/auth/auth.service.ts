@@ -267,8 +267,11 @@ export class AuthService {
     this.logger.debug(`Password reset token issued for user ${user.id}`);
     this.securityEvents.emit('PASSWORD_RESET_REQUESTED', { storeId, userId: user.id });
 
-    const adminAppUrl = this.configService.get('adminAppUrl', { infer: true });
-    const resetLink = `${adminAppUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
+    const appUrl =
+      user.type === 'ADMIN'
+        ? this.configService.get('adminAppUrl', { infer: true })
+        : this.configService.get('storefrontUrl', { infer: true });
+    const resetLink = `${appUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
     try {
       await this.emailProvider.send({
         to: user.email,

@@ -27,6 +27,9 @@ export default function LoginPage() {
           {submitting ? 'Signing in…' : 'Sign In'}
         </button>
       </form>
+      <p style={{ marginTop: 12, fontSize: '0.9rem', textAlign: 'right' }}>
+        <Link href="/forgot-password">Forgot password?</Link>
+      </p>
       <p style={{ marginTop: 16, fontSize: '0.9rem' }}>
         New here? <Link href="/register">Create an account</Link>
       </p>

@@ -52,6 +52,30 @@ export async function proxyLogin(body: unknown): Promise<NextResponse> {
   return response;
 }
 
+// For the public forgot/reset-password endpoints. Handles the API's 204
+// explicitly, since a Response with status 204 must not carry a body.
+export async function proxyPublicAuthAction(
+  path: '/auth/forgot-password' | '/auth/reset-password',
+  body: unknown,
+): Promise<NextResponse> {
+  let apiResponse: Response;
+  try {
+    apiResponse = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    });
+  } catch {
+    return NextResponse.json({ message: 'Service is temporarily unavailable' }, { status: 503 });
+  }
+  if (apiResponse.status === 204) {
+    return new NextResponse(null, { status: 204 });
+  }
+  const data = await apiResponse.json().catch(() => ({}));
+  return NextResponse.json(data, { status: apiResponse.status });
+}
+
 export async function proxyRegister(body: unknown): Promise<NextResponse> {
   const apiResponse = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',

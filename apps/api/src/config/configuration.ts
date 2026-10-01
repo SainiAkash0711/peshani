@@ -96,6 +96,8 @@ export interface AppConfig {
   // used only to build fully-qualified links the API itself needs to send a
   // user to the admin app, e.g. the password-reset email's link.
   adminAppUrl: string;
+  // Base URL of the customer-facing storefront (apps/web), for the same purpose.
+  storefrontUrl: string;
 }
 
 export default (): AppConfig => ({
@@ -174,4 +176,5 @@ export default (): AppConfig => ({
     secure: process.env.EMAIL_SECURE === 'true',
   },
   adminAppUrl: process.env.ADMIN_APP_URL ?? 'http://localhost:5173',
+  storefrontUrl: process.env.STOREFRONT_URL ?? 'http://localhost:3002',
 });
