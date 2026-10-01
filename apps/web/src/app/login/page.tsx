@@ -1,38 +1,76 @@
 'use client';
 
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../lib/auth-context';
+import { AuthShell } from '../../components/auth/AuthShell';
+import { AuthField, SubmitButton } from '../../components/auth/AuthField';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [shake, setShake] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    await login(email, password);
+    const ok = await login(email.trim(), password);
     setSubmitting(false);
+    if (!ok) {
+      setShake(true);
+      setTimeout(() => setShake(false), 450);
+    }
   }
 
   return (
-    <main className="container" style={{ maxWidth: 420 }}>
-      <h1>Sign In</h1>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <input className="field" type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input className="field" type="password" placeholder="Password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-        <button type="submit" className="btn" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign In'}
-        </button>
+    <AuthShell
+      eyebrow="Welcome back"
+      title="Sign in to Peshani"
+      subtitle="Pick up right where you left off — your cart and wishlist are waiting."
+      shake={shake}
+    >
+      <form onSubmit={handleSubmit} className="auth-form">
+        <AuthField
+          label="Email address"
+          icon="mail"
+          type="email"
+          placeholder="you@example.com"
+          autoComplete="email"
+          required
+          autoFocus
+          value={email}
+          onChange={setEmail}
+        />
+        <div>
+          <AuthField
+            label="Password"
+            icon="lock"
+            type="password"
+            placeholder="Enter your password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={setPassword}
+          />
+          <p className="auth-row-end">
+            <Link href="/forgot-password" className="auth-link">
+              Forgot password?
+            </Link>
+          </p>
+        </div>
+        <SubmitButton busy={submitting} busyLabel="Signing in…">
+          Sign in
+        </SubmitButton>
       </form>
-      <p style={{ marginTop: 12, fontSize: '0.9rem', textAlign: 'right' }}>
-        <Link href="/forgot-password">Forgot password?</Link>
-      </p>
-      <p style={{ marginTop: 16, fontSize: '0.9rem' }}>
-        New here? <Link href="/register">Create an account</Link>
-      </p>
-    </main>
+
+      <div className="auth-divider">
+        <span>New to Peshani?</span>
+      </div>
+      <Link href="/register" className="btn btn--outline auth-alt-btn">
+        Create an account
+      </Link>
+    </AuthShell>
   );
 }

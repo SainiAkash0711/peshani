@@ -4,6 +4,8 @@ import { FormEvent, Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '../../lib/toast-context';
+import { AuthShell } from '../../components/auth/AuthShell';
+import { AuthField, SubmitButton } from '../../components/auth/AuthField';
 
 function ResetPasswordForm() {
   const { show } = useToast();
@@ -33,7 +35,7 @@ function ResetPasswordForm() {
       });
       if (res.ok) {
         setDone(true);
-        setTimeout(() => router.push('/login'), 2000);
+        setTimeout(() => router.push('/login'), 2500);
         return;
       }
       const data = await res.json().catch(() => ({}));
@@ -47,52 +49,73 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <>
-        <p>This reset link is missing or incomplete. Please request a new one.</p>
-        <p style={{ marginTop: 16, fontSize: '0.9rem' }}>
-          <Link href="/forgot-password">Request a new link</Link>
+      <div className="auth-notice auth-notice--warn">
+        <p>
+          This reset link is missing or incomplete.{' '}
+          <Link href="/forgot-password" className="auth-link">
+            Request a new link
+          </Link>
+          .
         </p>
-      </>
+      </div>
     );
   }
 
   if (done) {
-    return <p>Your password has been reset. Redirecting you to sign in…</p>;
+    return (
+      <div className="auth-notice">
+        <p>Your password has been reset. Taking you to sign in…</p>
+      </div>
+    );
   }
 
+  const mismatch = confirmPassword.length > 0 && confirmPassword !== newPassword;
+
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <input
-        className="field"
+    <form onSubmit={handleSubmit} className="auth-form">
+      <AuthField
+        label="New password"
+        icon="lock"
         type="password"
-        placeholder="New password (min 8 characters)"
+        placeholder="At least 8 characters"
+        autoComplete="new-password"
         required
         autoFocus
+        showStrength
         value={newPassword}
-        onChange={(e) => setNewPassword(e.target.value)}
+        onChange={setNewPassword}
       />
-      <input
-        className="field"
-        type="password"
-        placeholder="Confirm new password"
-        required
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-      />
-      <button type="submit" className="btn" disabled={submitting}>
-        {submitting ? 'Resetting…' : 'Reset password'}
-      </button>
+      <div>
+        <AuthField
+          label="Confirm new password"
+          icon="lock"
+          type="password"
+          placeholder="Type it again"
+          autoComplete="new-password"
+          required
+          value={confirmPassword}
+          onChange={setConfirmPassword}
+        />
+        {mismatch && <p className="auth-field__hint">Passwords don&apos;t match yet</p>}
+      </div>
+      <SubmitButton busy={submitting} busyLabel="Resetting…">
+        Reset password
+      </SubmitButton>
     </form>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <main className="container" style={{ maxWidth: 420 }}>
-      <h1>Reset Password</h1>
+    <AuthShell eyebrow="Account help" title="Choose a new password" subtitle="Pick something strong that you don't use elsewhere.">
       <Suspense fallback={null}>
         <ResetPasswordForm />
       </Suspense>
-    </main>
+      <p className="auth-footnote">
+        <Link href="/login" className="auth-link">
+          ← Back to sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

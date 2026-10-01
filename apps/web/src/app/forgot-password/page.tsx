@@ -3,6 +3,8 @@
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useToast } from '../../lib/toast-context';
+import { AuthShell } from '../../components/auth/AuthShell';
+import { AuthField, SubmitButton } from '../../components/auth/AuthField';
 
 export default function ForgotPasswordPage() {
   const { show } = useToast();
@@ -33,42 +35,53 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="container" style={{ maxWidth: 420 }}>
-      <h1>Forgot Password</h1>
+    <AuthShell
+      eyebrow="Account help"
+      title={submitted ? 'Check your inbox' : 'Forgot your password?'}
+      subtitle={
+        submitted
+          ? 'If an account exists for that email, a reset link is on its way.'
+          : "No worries — enter your email and we'll send you a link to reset it."
+      }
+    >
       {submitted ? (
-        <>
+        <div className="auth-notice">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1.5 8 6 8-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+          </svg>
           <p>
-            If an account exists for <strong>{email.trim()}</strong>, we&apos;ve sent a link to reset your password.
-            The link expires in 1 hour. Please also check your spam folder.
-          </p>
-          <p style={{ marginTop: 16, fontSize: '0.9rem' }}>
-            <Link href="/login">Back to sign in</Link>
-          </p>
-        </>
-      ) : (
-        <>
-          <p style={{ color: 'var(--color-muted, #6b7280)' }}>
-            Enter your email and we&apos;ll send you a link to reset your password.
-          </p>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <input
-              className="field"
-              type="email"
-              placeholder="Email"
-              required
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <button type="submit" className="btn" disabled={submitting}>
-              {submitting ? 'Sending…' : 'Send reset link'}
+            We sent it to <strong>{email.trim()}</strong>. The link expires in 1 hour. Don&apos;t see it? Check your spam
+            folder, or{' '}
+            <button type="button" className="auth-link auth-link--button" onClick={() => setSubmitted(false)}>
+              try again
             </button>
-          </form>
-          <p style={{ marginTop: 16, fontSize: '0.9rem' }}>
-            Remembered it? <Link href="/login">Back to sign in</Link>
+            .
           </p>
-        </>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="auth-form">
+          <AuthField
+            label="Email address"
+            icon="mail"
+            type="email"
+            placeholder="you@example.com"
+            autoComplete="email"
+            required
+            autoFocus
+            value={email}
+            onChange={setEmail}
+          />
+          <SubmitButton busy={submitting} busyLabel="Sending…">
+            Send reset link
+          </SubmitButton>
+        </form>
       )}
-    </main>
+
+      <p className="auth-footnote">
+        <Link href="/login" className="auth-link">
+          ← Back to sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
