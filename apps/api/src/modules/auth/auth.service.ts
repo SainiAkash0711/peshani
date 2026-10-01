@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -15,6 +16,8 @@ import { AppConfig } from '../../config/configuration';
 import { parseDurationToMs } from '../../common/utils/duration.util';
 import { CartService, MergeResult } from '../cart/cart.service';
 import { SecurityEventsService } from '../../common/security/security-events.service';
+import { EMAIL_PROVIDER } from '../notifications/providers/email-provider.tokens';
+import { EmailProvider } from '../notifications/providers/email-provider.interface';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -43,6 +46,7 @@ export class AuthService {
     private readonly auditLogService: AuditLogService,
     private readonly cartService: CartService,
     private readonly securityEvents: SecurityEventsService,
+    @Inject(EMAIL_PROVIDER) private readonly emailProvider: EmailProvider,
   ) {}
 
   async register(storeId: string, dto: RegisterDto, ipAddress?: string) {
@@ -262,6 +266,28 @@ export class AuthService {
     // Never log the raw token value (§39) - only that one was issued.
     this.logger.debug(`Password reset token issued for user ${user.id}`);
     this.securityEvents.emit('PASSWORD_RESET_REQUESTED', { storeId, userId: user.id });
+
+    const adminAppUrl = this.configService.get('adminAppUrl', { infer: true });
+    const resetLink = `${adminAppUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
+    try {
+      await this.emailProvider.send({
+        to: user.email,
+        subject: 'Reset your password',
+        text: `We received a request to reset your password. This link expires in 1 hour and can only be used once:\n\n${resetLink}\n\nIf you didn't request this, you can safely ignore this email.`,
+        html: `
+          <p>We received a request to reset your password.</p>
+          <p><a href="${resetLink}">Click here to reset your password</a></p>
+          <p>This link expires in 1 hour and can only be used once. If you didn't request this, you can safely ignore this email.</p>
+        `,
+      });
+    } catch (error) {
+      // Same durable-first, best-effort-email-second contract as
+      // ContactService - the token itself already exists and is valid
+      // regardless of whether this send succeeds, so a transient SMTP
+      // failure here must never surface as an error response (that would
+      // also leak, via timing/status, whether the email address exists).
+      this.logger.error(`Failed to email password reset link for user ${user.id}: ${error}`);
+    }
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {

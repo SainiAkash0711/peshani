@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { ApiError } from '../lib/api-client';
 import { TextField } from '../components/FormField';
@@ -75,6 +75,11 @@ export function LoginPage() {
         <Button type="submit" disabled={isSubmitting} style={{ width: '100%' }}>
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </Button>
+        <p style={{ marginTop: 16, textAlign: 'center' }}>
+          <Link to="/forgot-password" style={{ fontSize: 13, color: '#2563eb' }}>
+            Forgot password?
+          </Link>
+        </p>
       </form>
     </div>
   );

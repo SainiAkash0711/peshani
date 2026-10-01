@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './lib/auth-context';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
 import { CategoriesPage } from './pages/categories/CategoriesPage';
 import { SubcategoriesPage } from './pages/subcategories/SubcategoriesPage';
@@ -44,6 +46,8 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Navigate to="/products" replace />} />
         <Route path="/store-settings" element={<StoreSettingsPage />} />

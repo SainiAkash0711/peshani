@@ -91,6 +91,11 @@ export interface AppConfig {
     fromName: string;
     secure: boolean;
   };
+  // Base URL of the admin SPA (see deploy/nginx/nginx.conf's /admin/ location,
+  // which serves it under the same domain as the storefront in production) -
+  // used only to build fully-qualified links the API itself needs to send a
+  // user to the admin app, e.g. the password-reset email's link.
+  adminAppUrl: string;
 }
 
 export default (): AppConfig => ({
@@ -168,4 +173,5 @@ export default (): AppConfig => ({
     fromName: process.env.EMAIL_FROM_NAME ?? 'Peshani',
     secure: process.env.EMAIL_SECURE === 'true',
   },
+  adminAppUrl: process.env.ADMIN_APP_URL ?? 'http://localhost:5173',
 });
