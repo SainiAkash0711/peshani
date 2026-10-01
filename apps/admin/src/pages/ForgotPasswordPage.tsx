@@ -1,9 +1,8 @@
 import { FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient, ApiError } from '../lib/api-client';
-import { TextField } from '../components/FormField';
-import { Button } from '../components/Button';
-import { Logo } from '../components/Logo';
+import { AuthShell } from '../components/auth/AuthShell';
+import { AuthField, SubmitButton } from '../components/auth/AuthField';
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -16,10 +15,8 @@ export function ForgotPasswordPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      // POST /auth/forgot-password always responds 204 regardless of whether
-      // the email exists (see AuthService.forgotPassword) - never reveal
-      // that distinction here either.
-      await apiClient.post('/auth/forgot-password', { email });
+      // Always 204 whether or not the email exists - see AuthService.forgotPassword.
+      await apiClient.post('/auth/forgot-password', { email: email.trim() });
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof ApiError || err instanceof Error ? err.message : 'Something went wrong');
@@ -29,65 +26,58 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'system-ui, sans-serif',
-        background: '#f9fafb',
-      }}
+    <AuthShell
+      eyebrow="Account help"
+      title={submitted ? 'Check your inbox' : 'Forgot your password?'}
+      subtitle={
+        submitted
+          ? 'If an account exists for that email, a reset link is on its way.'
+          : "Enter your email and we'll send you a link to reset it."
+      }
     >
-      <div
-        style={{
-          background: '#fff',
-          padding: 32,
-          borderRadius: 10,
-          border: '1px solid #e5e7eb',
-          width: 360,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <Logo size={32} />
-          <h1 style={{ fontSize: 20, margin: 0 }}>Peshani Admin</h1>
+      {submitted ? (
+        <div className="auth-notice">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm0 1.5 8 6 8-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+          </svg>
+          <p>
+            We sent it to <strong>{email.trim()}</strong>. The link expires in 1 hour. Don&apos;t see it? Check your spam
+            folder, or{' '}
+            <button type="button" className="auth-link auth-link--button" onClick={() => setSubmitted(false)}>
+              try again
+            </button>
+            .
+          </p>
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="auth-form">
+          <AuthField
+            label="Email address"
+            icon="mail"
+            type="email"
+            placeholder="admin@peshani.com"
+            autoComplete="username"
+            required
+            autoFocus
+            value={email}
+            onChange={setEmail}
+          />
+          {error && (
+            <p className="auth-error" role="alert">
+              {error}
+            </p>
+          )}
+          <SubmitButton busy={isSubmitting} busyLabel="Sending…">
+            Send reset link
+          </SubmitButton>
+        </form>
+      )}
 
-        {submitted ? (
-          <>
-            <p style={{ fontSize: 13, color: '#374151', margin: '20px 0 20px' }}>
-              If an account exists for <strong>{email}</strong>, we've sent a password reset link to it. The link
-              expires in 1 hour.
-            </p>
-            <Link to="/login" style={{ fontSize: 13, color: '#2563eb' }}>
-              Back to sign in
-            </Link>
-          </>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 20px' }}>
-              Enter your email and we'll send you a link to reset your password.
-            </p>
-            <TextField
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoFocus
-            />
-            {error && <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 12 }}>{error}</p>}
-            <Button type="submit" disabled={isSubmitting} style={{ width: '100%' }}>
-              {isSubmitting ? 'Sending…' : 'Send reset link'}
-            </Button>
-            <p style={{ marginTop: 16, textAlign: 'center' }}>
-              <Link to="/login" style={{ fontSize: 13, color: '#2563eb' }}>
-                Back to sign in
-              </Link>
-            </p>
-          </form>
-        )}
-      </div>
-    </div>
+      <p className="auth-footnote">
+        <Link to="/login" className="auth-link">
+          ← Back to sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

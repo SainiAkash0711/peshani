@@ -2,9 +2,8 @@ import { FormEvent, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { ApiError } from '../lib/api-client';
-import { TextField } from '../components/FormField';
-import { Button } from '../components/Button';
-import { Logo } from '../components/Logo';
+import { AuthShell } from '../components/auth/AuthShell';
+import { AuthField, SubmitButton } from '../components/auth/AuthField';
 
 export function LoginPage() {
   const { user, login } = useAuth();
@@ -12,6 +11,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shake, setShake] = useState(false);
 
   if (user) {
     return <Navigate to="/categories" replace />;
@@ -22,65 +22,61 @@ export function LoginPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(email.trim(), password);
     } catch (err) {
       setError(err instanceof ApiError || err instanceof Error ? err.message : 'Login failed');
+      setShake(true);
+      setTimeout(() => setShake(false), 450);
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'system-ui, sans-serif',
-        background: '#f9fafb',
-      }}
+    <AuthShell
+      eyebrow="Peshani Admin"
+      title="Welcome back"
+      subtitle="Sign in to manage your store, orders and customers."
+      shake={shake}
     >
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          background: '#fff',
-          padding: 32,
-          borderRadius: 10,
-          border: '1px solid #e5e7eb',
-          width: 360,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <Logo size={32} />
-          <h1 style={{ fontSize: 20, margin: 0 }}>Peshani Admin</h1>
-        </div>
-        <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 20px' }}>Sign in to manage your store</p>
-        <TextField
-          label="Email"
+      <form onSubmit={handleSubmit} className="auth-form">
+        <AuthField
+          label="Email address"
+          icon="mail"
           type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          placeholder="admin@peshani.com"
+          autoComplete="username"
           required
           autoFocus
+          value={email}
+          onChange={setEmail}
         />
-        <TextField
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {error && <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 12 }}>{error}</p>}
-        <Button type="submit" disabled={isSubmitting} style={{ width: '100%' }}>
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
-        </Button>
-        <p style={{ marginTop: 16, textAlign: 'center' }}>
-          <Link to="/forgot-password" style={{ fontSize: 13, color: '#2563eb' }}>
-            Forgot password?
-          </Link>
-        </p>
+        <div>
+          <AuthField
+            label="Password"
+            icon="lock"
+            type="password"
+            placeholder="Enter your password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={setPassword}
+          />
+          <p className="auth-row-end">
+            <Link to="/forgot-password" className="auth-link">
+              Forgot password?
+            </Link>
+          </p>
+        </div>
+        {error && (
+          <p className="auth-error" role="alert">
+            {error}
+          </p>
+        )}
+        <SubmitButton busy={isSubmitting} busyLabel="Signing in…">
+          Sign in
+        </SubmitButton>
       </form>
-    </div>
+    </AuthShell>
   );
 }

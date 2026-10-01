@@ -1,9 +1,8 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient, ApiError } from '../lib/api-client';
-import { TextField } from '../components/FormField';
-import { Button } from '../components/Button';
-import { Logo } from '../components/Logo';
+import { AuthShell } from '../components/auth/AuthShell';
+import { AuthField, SubmitButton } from '../components/auth/AuthField';
 
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -19,21 +18,19 @@ export function ResetPasswordPage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
     if (newPassword.length < 8) {
       setError('Password must be at least 8 characters');
       return;
     }
-
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await apiClient.post('/auth/reset-password', { token, newPassword });
       setDone(true);
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => navigate('/login'), 2500);
     } catch (err) {
       setError(err instanceof ApiError || err instanceof Error ? err.message : 'Failed to reset password');
     } finally {
@@ -41,69 +38,67 @@ export function ResetPasswordPage() {
     }
   }
 
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'system-ui, sans-serif',
-        background: '#f9fafb',
-      }}
-    >
-      <div
-        style={{
-          background: '#fff',
-          padding: 32,
-          borderRadius: 10,
-          border: '1px solid #e5e7eb',
-          width: 360,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <Logo size={32} />
-          <h1 style={{ fontSize: 20, margin: 0 }}>Peshani Admin</h1>
-        </div>
+  const mismatch = confirmPassword.length > 0 && confirmPassword !== newPassword;
 
-        {!token ? (
-          <>
-            <p style={{ color: '#dc2626', fontSize: 13, margin: '20px 0' }}>
-              This reset link is missing its token. Please request a new one.
-            </p>
-            <Link to="/forgot-password" style={{ fontSize: 13, color: '#2563eb' }}>
+  return (
+    <AuthShell eyebrow="Account help" title="Choose a new password" subtitle="Pick something strong that you don't use elsewhere.">
+      {!token ? (
+        <div className="auth-notice auth-notice--warn">
+          <p>
+            This reset link is missing or incomplete.{' '}
+            <Link to="/forgot-password" className="auth-link">
               Request a new link
             </Link>
-          </>
-        ) : done ? (
-          <p style={{ fontSize: 13, color: '#374151', margin: '20px 0' }}>
-            Your password has been reset. Redirecting you to sign in…
+            .
           </p>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 20px' }}>Choose a new password.</p>
-            <TextField
-              label="New password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              autoFocus
-            />
-            <TextField
+        </div>
+      ) : done ? (
+        <div className="auth-notice">
+          <p>Your password has been reset. Taking you to sign in…</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="auth-form">
+          <AuthField
+            label="New password"
+            icon="lock"
+            type="password"
+            placeholder="At least 8 characters"
+            autoComplete="new-password"
+            required
+            autoFocus
+            showStrength
+            value={newPassword}
+            onChange={setNewPassword}
+          />
+          <div>
+            <AuthField
               label="Confirm new password"
+              icon="lock"
               type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Type it again"
+              autoComplete="new-password"
               required
+              value={confirmPassword}
+              onChange={setConfirmPassword}
             />
-            {error && <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 12 }}>{error}</p>}
-            <Button type="submit" disabled={isSubmitting} style={{ width: '100%' }}>
-              {isSubmitting ? 'Resetting…' : 'Reset password'}
-            </Button>
-          </form>
-        )}
-      </div>
-    </div>
+            {mismatch && <p className="auth-field__hint">Passwords don&apos;t match yet</p>}
+          </div>
+          {error && (
+            <p className="auth-error" role="alert">
+              {error}
+            </p>
+          )}
+          <SubmitButton busy={isSubmitting} busyLabel="Resetting…">
+            Reset password
+          </SubmitButton>
+        </form>
+      )}
+
+      <p className="auth-footnote">
+        <Link to="/login" className="auth-link">
+          ← Back to sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
