@@ -1947,6 +1947,13 @@ select {
   align-items: center;
   gap: 12px;
   z-index: 70;
+  transition: bottom 0.25s ease;
+}
+
+@media (max-width: 800px) {
+  body:has(.pdp__sticky.is-visible) .fab-stack {
+    bottom: 92px;
+  }
 }
 
 .fab-btn {
