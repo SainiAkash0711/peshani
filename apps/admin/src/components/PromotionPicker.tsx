@@ -71,7 +71,7 @@ export function PromotionPicker({ value, onChange }: PromotionPickerProps) {
           <button
             type="button"
             onClick={() => onChange(null)}
-            style={{ border: 'none', background: 'none', color: '#4f46e5', cursor: 'pointer', fontSize: 13 }}
+            style={{ border: 'none', background: 'none', color: '#0f7a4f', cursor: 'pointer', fontSize: 13 }}
           >
             Change
           </button>

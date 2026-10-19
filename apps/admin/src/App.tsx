@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './lib/auth-context';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
@@ -49,7 +50,7 @@ export function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<ProtectedLayout />}>
-        <Route path="/" element={<Navigate to="/products" replace />} />
+        <Route path="/" element={<DashboardPage />} />
         <Route path="/store-settings" element={<StoreSettingsPage />} />
         <Route path="/contact-messages" element={<ContactMessagesPage />} />
         <Route path="/contact-messages/:id" element={<ContactMessageDetailPage />} />

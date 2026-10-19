@@ -119,7 +119,7 @@ export function TemplateFormModal({ title, initial, onSubmit, onClose }: Templat
             availableVars.map((v) => (
               <code
                 key={v}
-                style={{ background: '#eef2ff', color: '#3730a3', padding: '1px 6px', borderRadius: 4, marginRight: 4 }}
+                style={{ background: '#e6f4ec', color: '#0b5c3c', padding: '1px 6px', borderRadius: 4, marginRight: 4 }}
               >
                 {`{{${v}}}`}
               </code>

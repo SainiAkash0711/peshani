@@ -1,8 +1,7 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { getCategoryTree } from '../../lib/api';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
-import { isAllowedImageUrl } from '../../lib/safe-image';
+import { CategoryTile } from '../../components/CategoryTile';
 
 export const metadata = { title: 'Categories' };
 export const dynamic = 'force-dynamic';
@@ -13,20 +12,30 @@ export default async function CategoriesPage() {
   return (
     <main className="container">
       <Breadcrumbs items={[{ label: 'Categories' }]} />
-      <h1 style={{ marginBottom: 24 }}>Categories</h1>
+      <header className="page-intro">
+        <p className="page-intro__eyebrow">Browse the store</p>
+        <h1>Shop by Category</h1>
+        <p>Explore every collection — from everyday essentials to handmade pieces.</p>
+      </header>
       {categories.length === 0 ? (
-        <div className="empty-state">No categories available yet.</div>
+        <div className="empty-state empty-state--rich">
+          <p>No categories available yet.</p>
+          <Link href="/products" className="btn">
+            Browse all products
+          </Link>
+        </div>
       ) : (
-        <div className="category-grid">
-          {categories.map((category) => (
-            <Link key={category.id} href={`/categories/${category.slug}`} className="category-tile">
-              {category.image && isAllowedImageUrl(category.image) && (
-                <span className="category-tile__image">
-                  <Image src={category.image} alt="" fill sizes="(max-width: 640px) 30vw, 160px" />
-                </span>
-              )}
-              {category.name}
-            </Link>
+        <div className="cat-grid">
+          {categories.map((category, index) => (
+            <CategoryTile
+              key={category.id}
+              slug={category.slug}
+              name={category.name}
+              image={category.image}
+              description={category.description}
+              subcategoryCount={category.children.length}
+              index={index}
+            />
           ))}
         </div>
       )}

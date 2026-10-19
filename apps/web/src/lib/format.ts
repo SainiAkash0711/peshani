@@ -5,6 +5,15 @@ export function formatPrice(amount: string, currencySymbol = '₹'): string {
   return `${currencySymbol}${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+export function discountPercent(price: string, compareAtPrice: string | null | undefined): number | null {
+  if (!compareAtPrice) return null;
+  const current = Number(price);
+  const original = Number(compareAtPrice);
+  if (!(original > current) || current <= 0) return null;
+  const pct = Math.round(((original - current) / original) * 100);
+  return pct >= 1 ? pct : null;
+}
+
 export const AVAILABILITY_LABEL: Record<Availability, string> = {
   IN_STOCK: 'In Stock',
   LOW_STOCK: 'Low Stock',

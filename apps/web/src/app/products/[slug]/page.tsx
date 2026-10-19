@@ -77,7 +77,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
   return (
     <main className="container">
       <Breadcrumbs items={breadcrumbItems} />
-      <ProductDetailInteractive product={product} currencySymbol={settings.currencySymbol} />
+      <ProductDetailInteractive
+        product={product}
+        currencySymbol={settings.currencySymbol}
+        returnWindowDays={Number(settings.RETURN_WINDOW_DAYS) || undefined}
+        supportPhone={settings.supportPhone}
+      />
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(productJsonLd) }} />
       {/* eslint-disable-next-line react/no-danger */}

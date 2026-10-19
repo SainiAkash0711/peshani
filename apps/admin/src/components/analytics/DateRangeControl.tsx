@@ -51,9 +51,9 @@ export function DateRangeControl({ value, onChange }: DateRangeControlProps) {
                 fontSize: 13,
                 fontWeight: isActive ? 600 : 400,
                 borderRadius: 999,
-                border: isActive ? '1px solid #4f46e5' : '1px solid #d1d5db',
-                background: isActive ? '#eef2ff' : '#fff',
-                color: isActive ? '#4338ca' : '#374151',
+                border: isActive ? '1px solid #0f7a4f' : '1px solid #d1d5db',
+                background: isActive ? '#e6f4ec' : '#fff',
+                color: isActive ? '#0b5c3c' : '#374151',
                 cursor: 'pointer',
               }}
             >

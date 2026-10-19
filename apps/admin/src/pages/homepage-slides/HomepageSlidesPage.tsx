@@ -175,7 +175,7 @@ export function HomepageSlidesPage() {
               onClick={() => setEditingSlide(slide)}
               style={{
                 width: 220,
-                border: slide.isActive ? '2px solid #4f46e5' : '1px solid #e5e7eb',
+                border: slide.isActive ? '2px solid #0f7a4f' : '1px solid #e5e7eb',
                 borderRadius: 8,
                 overflow: 'hidden',
                 cursor: 'grab',
@@ -188,7 +188,7 @@ export function HomepageSlidesPage() {
                 <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {slide.title || <span style={{ color: '#9ca3af', fontWeight: 400 }}>Untitled slide</span>}
                 </div>
-                <div style={{ fontSize: 11, color: slide.isActive ? '#4f46e5' : '#9ca3af', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, color: slide.isActive ? '#0f7a4f' : '#9ca3af', marginBottom: 6 }}>
                   {slide.isActive ? 'Active' : 'Hidden'}
                 </div>
                 <div style={{ display: 'flex', gap: 4 }} onClick={(e) => e.stopPropagation()}>

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ProductListItem } from '../types/catalog';
-import { formatPrice } from '../lib/format';
+import { discountPercent, formatPrice } from '../lib/format';
 import { isAllowedImageUrl } from '../lib/safe-image';
 import { AvailabilityBadge } from './AvailabilityBadge';
 import { WishlistButton } from './WishlistButton';
@@ -25,11 +25,13 @@ function CardRating({ rating, reviewCount }: { rating: number; reviewCount: numb
 }
 
 export function ProductCard({ product, currencySymbol }: { product: ProductListItem; currencySymbol?: string }) {
+  const discount = product.priceRange ? null : discountPercent(product.basePrice, product.compareAtPrice);
   return (
     <Link href={`/products/${product.slug}`} className="card" style={{ position: 'relative' }}>
       <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 1, background: 'var(--color-surface, #fff)', borderRadius: '50%' }}>
         <WishlistButton productId={product.id} />
       </div>
+      {discount && <span className="card__discount">-{discount}%</span>}
       <div className="card__media">
         {product.primaryImage && isAllowedImageUrl(product.primaryImage.url) ? (
           <Image
@@ -62,7 +64,12 @@ export function ProductCard({ product, currencySymbol }: { product: ProductListI
             </>
           )}
         </div>
-        <AvailabilityBadge availability={product.availability} />
+        <div className="card__footer">
+          <AvailabilityBadge availability={product.availability} />
+          <span className="card__view" aria-hidden="true">
+            View →
+          </span>
+        </div>
       </div>
     </Link>
   );

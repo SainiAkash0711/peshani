@@ -7,7 +7,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANT_STYLES: Record<Variant, { background: string; color: string; border: string }> = {
-  primary: { background: '#4f46e5', color: '#fff', border: '1px solid #4f46e5' },
+  primary: { background: '#0f7a4f', color: '#fff', border: '1px solid #0f7a4f' },
   secondary: { background: '#fff', color: '#374151', border: '1px solid #d1d5db' },
   danger: { background: '#dc2626', color: '#fff', border: '1px solid #dc2626' },
 };

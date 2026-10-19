@@ -82,11 +82,22 @@ export default function CartPage() {
     return (
       <main className="container">
         <h1>Your Cart</h1>
-        <div className="empty-state">
-          <p>Your cart is empty.</p>
-          <Link href="/products" className="btn">
-            Continue Shopping
-          </Link>
+        <div className="empty-state empty-state--rich">
+          <span className="empty-state__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="40" height="40">
+              <path d="M6 7h12l-1 13H7L6 7Zm3 0V6a3 3 0 0 1 6 0v1" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <h2>Your cart is empty</h2>
+          <p>Looks like you haven&apos;t added anything yet. Let&apos;s find something you&apos;ll love.</p>
+          <div className="empty-state__actions">
+            <Link href="/products" className="btn">
+              Start shopping
+            </Link>
+            <Link href="/categories" className="btn btn--outline">
+              Browse categories
+            </Link>
+          </div>
         </div>
       </main>
     );

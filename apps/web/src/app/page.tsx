@@ -1,12 +1,11 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import type { Metadata } from 'next';
 import { getCategoryTree, getHomePage, getStoreSettings } from '../lib/api';
 import { ProductCard } from '../components/ProductCard';
 import { HeroSlider } from '../components/HeroSlider';
 import { CategoryMegaMenu } from '../components/CategoryMegaMenu';
 import { TrustBadges } from '../components/TrustBadges';
-import { isAllowedImageUrl } from '../lib/safe-image';
+import { CategoryTile } from '../components/CategoryTile';
 import { SITE_URL } from '../lib/site';
 
 // Live catalog/inventory data, not a build-time constant - rendering it at
@@ -25,6 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function HomePage() {
   const [settings, home, categoryTree] = await Promise.all([getStoreSettings(), getHomePage(), getCategoryTree()]);
   const currencySymbol = settings.currencySymbol;
+  const subcategoryCounts = new Map(categoryTree.map((c) => [c.id, c.children.length]));
+  const shopCategories = home.featuredCategories.length > 0 ? home.featuredCategories : categoryTree.slice(0, 8);
 
   return (
     <main>
@@ -48,22 +49,23 @@ export default async function HomePage() {
       <div className="container">
         <TrustBadges />
 
-        {home.featuredCategories.length > 0 && (
+        {shopCategories.length > 0 && (
           <section className="section">
             <div className="section__header">
               <h2>Shop by Category</h2>
               <Link href="/categories">View all</Link>
             </div>
-            <div className="category-grid">
-              {home.featuredCategories.map((category) => (
-                <Link key={category.id} href={`/categories/${category.slug}`} className="category-tile">
-                  {category.image && isAllowedImageUrl(category.image) && (
-                    <span className="category-tile__image">
-                      <Image src={category.image} alt="" fill sizes="(max-width: 640px) 30vw, 160px" />
-                    </span>
-                  )}
-                  {category.name}
-                </Link>
+            <div className="cat-grid">
+              {shopCategories.map((category, index) => (
+                <CategoryTile
+                  key={category.id}
+                  slug={category.slug}
+                  name={category.name}
+                  image={category.image}
+                  description={category.description}
+                  subcategoryCount={subcategoryCounts.get(category.id)}
+                  index={index}
+                />
               ))}
             </div>
           </section>
@@ -124,6 +126,31 @@ export default async function HomePage() {
             </div>
           </section>
         )}
+
+        <section className="help-band">
+          <div className="help-band__text">
+            <p className="help-band__eyebrow">We're here to help</p>
+            <h2>Questions about a product or your order?</h2>
+            <p>Message us and a real person from our team will get back to you.</p>
+          </div>
+          <div className="help-band__actions">
+            {settings.supportPhone && (
+              <a
+                className="btn help-band__btn"
+                href={`https://wa.me/${settings.supportPhone.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Chat on WhatsApp
+              </a>
+            )}
+            {settings.supportEmail && (
+              <a className="btn btn--outline help-band__btn help-band__btn--ghost" href={`mailto:${settings.supportEmail}`}>
+                Email us
+              </a>
+            )}
+          </div>
+        </section>
       </div>
     </main>
   );

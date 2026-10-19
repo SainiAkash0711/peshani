@@ -134,7 +134,7 @@ export function WarehousesPage() {
               <tr key={warehouse.id}>
                 <td style={tdStyle}>
                   {warehouse.name}
-                  {warehouse.isDefault && <span style={{ marginLeft: 6, fontSize: 11, color: '#4f46e5' }}>(default)</span>}
+                  {warehouse.isDefault && <span style={{ marginLeft: 6, fontSize: 11, color: '#0f7a4f' }}>(default)</span>}
                 </td>
                 <td style={{ ...tdStyle, color: '#6b7280' }}>{warehouse.code}</td>
                 <td style={{ ...tdStyle, color: '#6b7280' }}>{[warehouse.city, warehouse.country].filter(Boolean).join(', ') || '—'}</td>

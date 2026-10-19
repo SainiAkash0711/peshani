@@ -14,7 +14,7 @@ export function LoginPage() {
   const [shake, setShake] = useState(false);
 
   if (user) {
-    return <Navigate to="/categories" replace />;
+    return <Navigate to="/" replace />;
   }
 
   async function handleSubmit(event: FormEvent) {

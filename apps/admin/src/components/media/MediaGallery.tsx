@@ -193,7 +193,7 @@ export function MediaGallery({
               onDrop={() => handleDropOnImage(image.id)}
               style={{
                 width: 140,
-                border: image.isPrimary ? '2px solid #4f46e5' : '1px solid #e5e7eb',
+                border: image.isPrimary ? '2px solid #0f7a4f' : '1px solid #e5e7eb',
                 borderRadius: 8,
                 overflow: 'hidden',
                 cursor: 'grab',
@@ -203,7 +203,7 @@ export function MediaGallery({
               <img src={image.url} alt={image.altText ?? ''} style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }} />
               <div style={{ padding: 8 }}>
                 {image.isPrimary ? (
-                  <div style={{ fontSize: 11, color: '#4f46e5', fontWeight: 600, marginBottom: 6 }}>★ Primary</div>
+                  <div style={{ fontSize: 11, color: '#0f7a4f', fontWeight: 600, marginBottom: 6 }}>★ Primary</div>
                 ) : (
                   <button
                     onClick={() => primaryMutation.mutate(image.id)}

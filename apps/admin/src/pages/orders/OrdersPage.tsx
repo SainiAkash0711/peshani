@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client';
 import { Pagination } from '../../components/Pagination';
@@ -25,10 +25,14 @@ const PAYMENT_STATUSES: PaymentStatus[] = ['CREATED', 'PENDING', 'AUTHORIZED', '
 
 export function OrdersPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get('status');
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'' | OrderStatus>('');
+  const [status, setStatus] = useState<'' | OrderStatus>(
+    ORDER_STATUSES.includes(initialStatus as OrderStatus) ? (initialStatus as OrderStatus) : '',
+  );
   const [paymentStatus, setPaymentStatus] = useState<'' | PaymentStatus>('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');

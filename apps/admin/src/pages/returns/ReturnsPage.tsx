@@ -167,7 +167,7 @@ export function ReturnsPage() {
                   <td style={{ ...tdStyle, color: '#6b7280' }}>{new Date(returnRequest.requestedAt).toLocaleString()}</td>
                   <td style={tdStyle}>
                     <span
-                      style={{ color: '#4f46e5', fontWeight: 500, cursor: 'pointer' }}
+                      style={{ color: '#0f7a4f', fontWeight: 500, cursor: 'pointer' }}
                       onClick={(e) => { e.stopPropagation(); navigate(`/orders/${returnRequest.order.orderNumber}`); }}
                     >
                       {returnRequest.order.orderNumber}

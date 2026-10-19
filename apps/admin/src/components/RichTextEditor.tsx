@@ -15,7 +15,7 @@ interface RichTextEditorProps {
 
 const toolbarButtonStyle = (active: boolean): React.CSSProperties => ({
   border: '1px solid #d1d5db',
-  background: active ? '#4f46e5' : '#fff',
+  background: active ? '#0f7a4f' : '#fff',
   color: active ? '#fff' : '#374151',
   borderRadius: 4,
   padding: '4px 8px',

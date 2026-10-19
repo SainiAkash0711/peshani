@@ -139,8 +139,8 @@ export function EntityPicker({ label, resourceUrl, selected, onChange, placehold
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                background: '#eef2ff',
-                color: '#3730a3',
+                background: '#e6f4ec',
+                color: '#0b5c3c',
                 fontSize: 12,
                 padding: '3px 8px',
                 borderRadius: 999,
@@ -151,7 +151,7 @@ export function EntityPicker({ label, resourceUrl, selected, onChange, placehold
                 type="button"
                 onClick={() => removeOption(s.id)}
                 aria-label={`Remove ${s.name}`}
-                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#3730a3', fontSize: 13, padding: 0 }}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#0b5c3c', fontSize: 13, padding: 0 }}
               >
                 ×
               </button>
