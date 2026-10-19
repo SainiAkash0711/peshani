@@ -69,7 +69,7 @@ export function CategoryMegaMenu({ categories }: { categories: CategoryTreeNode[
 
   return (
     <nav className="mega-nav" aria-label="Shop by category" ref={navRef}>
-      <div className="container mega-nav__bar">
+      <div className="container container--wide mega-nav__bar">
         {topCategories.map((category) => {
           const hasChildren = category.children.length > 0;
           const isOpen = openId === category.id;

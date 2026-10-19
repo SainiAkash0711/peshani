@@ -12,7 +12,7 @@ export async function Header() {
 
   return (
     <header className="site-header">
-      <div className="container site-header__bar">
+      <div className="container container--wide site-header__bar">
         <Link href="/" className="site-header__brand">
           <Logo name={settings.storeName} />
         </Link>

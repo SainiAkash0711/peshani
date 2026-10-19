@@ -21,6 +21,8 @@
   --color-warning: #b45309;
   --radius: 10px;
   --container-width: 1200px;
+  --container-wide: 1640px;
+  --gutter-wide: clamp(12px, 1.6vw, 24px);
 }
 
 * {
@@ -57,9 +59,23 @@ select {
 }
 
 .container {
-  max-width: var(--container-width);
+  max-width: var(--container-wide);
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--gutter-wide);
+}
+
+/* Same width and gutters as the homepage slider (.hero-slider-wrap), so the
+   header, category bar, footer and homepage sections share its edges. */
+@media (max-width: 800px) {
+  :root {
+    --gutter-wide: 16px;
+  }
+}
+
+.container--wide {
+  max-width: var(--container-wide);
+  padding-left: var(--gutter-wide);
+  padding-right: var(--gutter-wide);
 }
 
 .site-header {
@@ -979,9 +995,9 @@ select {
 
 .hero-slider-wrap {
   width: 100%;
-  max-width: 1640px;
+  max-width: var(--container-wide);
   margin: 0 auto;
-  padding: 16px clamp(12px, 1.6vw, 24px) 0;
+  padding: 16px var(--gutter-wide) 0;
   isolation: isolate;
 }
 
@@ -1421,33 +1437,94 @@ select {
 
 .trust-badges {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin: 32px 0;
-  padding: 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 24px 0 8px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
+  border-radius: 18px;
+  background: var(--color-bg);
+  box-shadow: 0 12px 30px -18px rgba(15, 60, 40, 0.25);
 }
 
 .trust-badges__item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-weight: 600;
-  font-size: 0.92rem;
+  gap: 14px;
+  padding: 20px 24px;
   color: var(--color-text);
 }
 
-.trust-badges__item svg {
+.trust-badges__item + .trust-badges__item {
+  border-left: 1px solid var(--color-border);
+}
+
+.trust-badges__icon {
+  display: grid;
+  place-items: center;
   flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--color-accent-soft);
   color: var(--color-accent);
 }
 
-@media (max-width: 640px) {
+.trust-badges__item:nth-child(2) .trust-badges__icon { background: #fbf0dc; color: var(--color-secondary-dark); }
+.trust-badges__item:nth-child(3) .trust-badges__icon { background: #e8f1fb; color: #2b5d8f; }
+.trust-badges__item:nth-child(4) .trust-badges__icon { background: #efeafb; color: #5b45a0; }
+
+.trust-badges__text strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.trust-badges__text small {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.trust-badges__icon svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
   .trust-badges {
-    grid-template-columns: repeat(2, 1fr);
-    padding: 18px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trust-badges__item:nth-child(3) {
+    border-left: 0;
+  }
+
+  .trust-badges__item:nth-child(n + 3) {
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+@media (max-width: 560px) {
+  .trust-badges__item {
+    gap: 10px;
+    padding: 14px 12px;
+  }
+
+  .trust-badges__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .trust-badges__icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .trust-badges__text strong {
+    font-size: 0.84rem;
+  }
+
+  .trust-badges__text small {
+    display: none;
   }
 }
 
@@ -2243,8 +2320,8 @@ select {
 
 .blog-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 40px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 48px;
   align-items: start;
 }
 
@@ -2406,6 +2483,12 @@ select {
   gap: 8px;
 }
 
+.blog-detail {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
 .blog-detail__cover {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -2427,7 +2510,6 @@ select {
 .blog-detail__content {
   line-height: 1.8;
   color: var(--color-text);
-  max-width: 70ch;
 }
 
 .blog-detail__content p {
@@ -2485,7 +2567,7 @@ select {
 /* ---- Category tiles (homepage + /categories) ---- */
 .cat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 18px;
 }
 

@@ -27,7 +27,7 @@ export async function Footer() {
 
   return (
     <footer className="site-footer">
-      <div className="container site-footer__grid">
+      <div className="container container--wide site-footer__grid">
         <div className="site-footer__brand">
           <Link href="/" className="site-footer__logo">
             <Logo name={settings.storeName} />
@@ -95,7 +95,7 @@ export async function Footer() {
       </div>
 
       <div className="site-footer__bottom">
-        <div className="container site-footer__bottom-inner">
+        <div className="container container--wide site-footer__bottom-inner">
           <span>
             &copy; {year} {settings.storeName}. All rights reserved.
           </span>

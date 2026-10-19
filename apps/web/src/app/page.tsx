@@ -35,7 +35,7 @@ export default async function HomePage() {
           <HeroSlider slides={home.slides} categories={categoryTree.map(({ name, slug }) => ({ name, slug }))} />
         </div>
       ) : (
-        <div className="container">
+        <div className="container container--wide">
           <section className="hero">
             <h1>{settings.storeName}</h1>
             <p>{settings.storeDescription ?? 'Your trusted online shopping destination'}</p>
@@ -46,7 +46,7 @@ export default async function HomePage() {
         </div>
       )}
 
-      <div className="container">
+      <div className="container container--wide">
         <TrustBadges />
 
         {shopCategories.length > 0 && (
