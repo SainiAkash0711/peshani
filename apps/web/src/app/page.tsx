@@ -32,7 +32,7 @@ export default async function HomePage() {
       <CategoryMegaMenu categories={categoryTree} />
       {home.slides.length > 0 ? (
         <div className="hero-slider-wrap">
-          <HeroSlider slides={home.slides} />
+          <HeroSlider slides={home.slides} categories={categoryTree.map(({ name, slug }) => ({ name, slug }))} />
         </div>
       ) : (
         <div className="container">
