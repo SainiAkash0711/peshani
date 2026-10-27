@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../lib/auth-context';
@@ -50,6 +50,11 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  // One key per checkout page visit: the server turns a repeated request with
+  // the same key into "resume that order's payment" instead of a second order,
+  // so a retry after a failed or interrupted payment start never meets an
+  // already-emptied cart.
+  const idempotencyKey = useRef<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -121,9 +126,10 @@ export default function CheckoutPage() {
     setStatusMessage(null);
 
     try {
+      idempotencyKey.current ??= crypto.randomUUID();
       const createRes = await fetch('/api/checkout/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey.current },
         body: JSON.stringify({
           email,
           billingAddress: address,
@@ -133,6 +139,19 @@ export default function CheckoutPage() {
       });
       const session = await createRes.json();
       if (!createRes.ok) {
+        // The order is created (and the cart emptied) before the payment
+        // window is prepared, so these outcomes mean the order already exists
+        // and can be paid from My Orders - staying here would only show a
+        // stale cart that no longer exists.
+        const orderAlreadyCreated =
+          createRes.status === 409 ||
+          createRes.status === 503 ||
+          (createRes.status === 400 && String(session.message ?? '').toLowerCase().includes('cart is empty'));
+        if (orderAlreadyCreated) {
+          show('Your order was saved, but the payment could not start. Open it in My Orders to complete the payment.', 'error');
+          router.push('/orders');
+          return;
+        }
         const message = session.message ?? 'Could not start checkout. Please review your cart and try again.';
         show(message, 'error');
         // If the create failed specifically because of the coupon (e.g. someone
