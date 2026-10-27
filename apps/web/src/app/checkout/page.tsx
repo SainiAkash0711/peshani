@@ -172,6 +172,7 @@ export default function CheckoutPage() {
         currency: session.currency,
         name: 'Peshani',
         description: `Order ${session.orderNumber}`,
+        orderNumber: session.orderNumber,
         prefill: { email, contact: address.phone, name: address.fullName },
         handler: async (response) => {
           setStatusMessage('Payment verification in progress…');

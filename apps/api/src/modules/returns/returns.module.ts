@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { AppConfig } from '../../config/configuration';
 import { InventoryModule } from '../inventory/inventory.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { StoreSettingsModule } from '../store-settings/store-settings.module';
 import { MediaModule } from '../../common/media/media.module';
 import { REFUND_PROVIDER } from '../payments/providers/refund-provider.interface';
 import { RazorpayRefundService } from '../payments/providers/razorpay-refund.service';
+import { MockRefundService } from '../payments/providers/mock-refund.service';
 import { ReturnEligibilityService } from './return-eligibility.service';
 import { RefundCalculationService } from './refund-calculation.service';
 import { ReturnRequestService } from './return-request.service';
@@ -33,7 +36,14 @@ import { AdminReturnsController } from './admin-returns.controller';
     RefundService,
     ReturnEvidenceService,
     AdminReturnsService,
-    { provide: REFUND_PROVIDER, useClass: RazorpayRefundService },
+    RazorpayRefundService,
+    MockRefundService,
+    {
+      provide: REFUND_PROVIDER,
+      useFactory: (config: ConfigService<AppConfig, true>, razorpay: RazorpayRefundService, mock: MockRefundService) =>
+        config.get('paymentMode', { infer: true }) === 'mock' ? mock : razorpay,
+      inject: [ConfigService, RazorpayRefundService, MockRefundService],
+    },
   ],
   exports: [ReturnEligibilityService],
 })

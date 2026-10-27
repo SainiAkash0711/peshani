@@ -1,11 +1,15 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { AppConfig } from '../../config/configuration';
 import { OrdersModule } from '../orders/orders.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { PromotionsModule } from '../promotions/promotions.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PaymentController } from './payment.controller';
+import { MockPaymentController } from './mock-payment.controller';
 import { PaymentService } from './payment.service';
 import { RazorpayService } from './providers/razorpay.service';
+import { MockPaymentService } from './providers/mock-payment.service';
 import { PAYMENT_PROVIDER } from './providers/payment-provider.interface';
 
 /**
@@ -21,8 +25,18 @@ import { PAYMENT_PROVIDER } from './providers/payment-provider.interface';
  */
 @Module({
   imports: [OrdersModule, InventoryModule, PromotionsModule, NotificationsModule],
-  controllers: [PaymentController],
-  providers: [PaymentService, { provide: PAYMENT_PROVIDER, useClass: RazorpayService }],
+  controllers: [PaymentController, MockPaymentController],
+  providers: [
+    PaymentService,
+    RazorpayService,
+    MockPaymentService,
+    {
+      provide: PAYMENT_PROVIDER,
+      useFactory: (config: ConfigService<AppConfig, true>, razorpay: RazorpayService, mock: MockPaymentService) =>
+        config.get('paymentMode', { infer: true }) === 'mock' ? mock : razorpay,
+      inject: [ConfigService, RazorpayService, MockPaymentService],
+    },
+  ],
   exports: [PaymentService],
 })
 export class PaymentsModule {}

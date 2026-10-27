@@ -118,6 +118,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ orderNum
         currency: session.currency,
         name: 'Peshani',
         description: `Order ${orderNumber}`,
+        orderNumber,
         handler: async (response) => {
           await fetch('/api/payments/verify', {
             method: 'POST',

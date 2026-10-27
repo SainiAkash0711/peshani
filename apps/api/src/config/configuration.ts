@@ -72,6 +72,8 @@ export interface AppConfig {
     maxUploadBytes: number;
     allowedMimeTypes: string[];
   };
+  // 'mock' swaps Razorpay for a dummy gateway that moves no money - for trying the store end to end before real keys exist.
+  paymentMode: 'razorpay' | 'mock';
   razorpay: {
     keyId: string;
     keySecret: string;
@@ -153,6 +155,7 @@ export default (): AppConfig => ({
       .map((type) => type.trim())
       .filter(Boolean),
   },
+  paymentMode: process.env.PAYMENT_MODE === 'mock' ? 'mock' : 'razorpay',
   razorpay: {
     keyId: process.env.RAZORPAY_KEY_ID ?? '',
     keySecret: process.env.RAZORPAY_KEY_SECRET ?? '',
