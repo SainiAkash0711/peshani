@@ -169,6 +169,17 @@ export class PaymentService {
 
     const receipt = payment.id;
 
+    // The dummy gateway can neither lose a response nor race another caller,
+    // so an attempt left half-started (claimed, no provider order) by an
+    // earlier failure - e.g. before real gateway keys existed - is safe to
+    // simply restart rather than leave stuck behind "being verified".
+    if (this.configService.get('paymentMode', { infer: true }) === 'mock') {
+      await this.prisma.payment.updateMany({
+        where: { id: payment.id, status: 'PENDING', providerOrderId: null },
+        data: { status: 'CREATED' },
+      });
+    }
+
     // Final micro-correction (§13): createOrder() must never be called
     // twice for the SAME Payment attempt - two concurrent recovery requests
     // could otherwise both observe providerOrderId === null and both reach
